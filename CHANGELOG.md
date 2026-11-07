@@ -8,7 +8,7 @@
 - Big Need / Greed / Pass buttons under the item while you still have to roll (can be turned off).
 - Finished rolls stay in the list per character, also after `/reload`. A Clear button empties the list.
 - The list is cleared when you enter a different dungeon or raid (setting, on by default).
-- Loot history (note button, top left, or `/lootrolls history`): every item ever rolled on, newest first and grouped by dungeon, raid or zone visit. It stays when you clear the list or enter a new dungeon. Filter for your own wins.
+- Loot history (note button, top left, or `/lootrolls history`): every item ever rolled on, newest first and grouped by dungeon, raid or zone visit. It stays when you clear the list or enter a new dungeon. Filters for your own wins and for item quality (e.g. from rare, to hide green items).
 - `/lootrolls test` shows made-up demo rolls to try the window.
 - Settings under Options → AddOns → Forever Loot Rolls.
 - English and German.

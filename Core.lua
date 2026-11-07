@@ -19,6 +19,7 @@ ns.DEFAULTS = {
     rollButtons = true,
     historySize = 30,
     archiveSize = 1000,
+    historyMinQuality = 0,      -- loot history filter: 0 = all, 2 = from uncommon, ...
     maxHeight = 380,
     opacity = 70,               -- background opacity in percent (100 = solid black)
     clearOnNewInstance = true,

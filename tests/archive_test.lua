@@ -70,6 +70,14 @@ for _, r in ipairs(rows) do
 end
 eq(items, 2, "two of my wins"); eq(groups, 2, "empty groups dropped by the filter")
 
+-- quality filter: the drops are green (|cnIQ2), so "from rare" hides them all
+eq(A.QualityOf(saved[1]), 2, "quality read from the link")
+eq(A.QualityOf({ link = "|cffa335ee|Hitem:1::::|h[Epic]|h|r" }), 4, "quality from an old-style colour")
+local function CountItems(r) local n = 0 for _, x in ipairs(r) do if x.kind == "item" then n = n + 1 end end return n end
+eq(CountItems(A:Rows(false, 2)), CountItems(A:Rows(false, 0)), "from uncommon keeps green")
+eq(CountItems(A:Rows(false, 3)), 0, "from rare drops green")
+eq(#A:Rows(false, 3), 0, "and their empty groups")
+
 -- folding a group in
 rows = A:Rows(false)
 A:Toggle(rows[3].id)

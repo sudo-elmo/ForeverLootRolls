@@ -269,8 +269,31 @@ function H:Create()
         H.offset = 0
         H:Refresh()
     end)
+    -- quality filter: all / from uncommon / from rare / from epic
+    local quality = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    quality:SetSize(130, 20)
+    quality:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+    quality:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    quality:SetScript("OnClick", function(_, mouse)
+        local idx = 1
+        for i, q in ipairs(H.QUALITY_STEPS) do if q == H:MinQuality() then idx = i end end
+        idx = idx + (mouse == "RightButton" and -1 or 1)
+        if idx > #H.QUALITY_STEPS then idx = 1 elseif idx < 1 then idx = #H.QUALITY_STEPS end
+        if ns.db then ns.db.historyMinQuality = H.QUALITY_STEPS[idx] end
+        H.offset = 0
+        H:Refresh()
+    end)
+    quality:SetScript("OnEnter", function(btn)
+        GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+        GameTooltip:SetText(L.qualityFilter)
+        GameTooltip:AddLine(L.qualityFilterTip, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    quality:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    self.qualityButton = quality
+
     self.count = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.count:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+    self.count:SetPoint("BOTTOMRIGHT", -PAD - 2, 20)
     self.count:SetTextColor(0.7, 0.7, 0.7)
 
     -- list area
@@ -371,10 +394,27 @@ function H:ApplyOpacity()
     end
 end
 
+H.QUALITY_STEPS = { 0, 2, 3, 4 }
+
+function H:MinQuality()
+    return tonumber(ns.db and ns.db.historyMinQuality) or 0
+end
+
+local function QualityName(q)
+    local name = _G["ITEM_QUALITY" .. q .. "_DESC"] or tostring(q)
+    local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
+    if c then
+        name = ("|cff%02x%02x%02x%s|r"):format(math.floor(c.r * 255), math.floor(c.g * 255), math.floor(c.b * 255), name)
+    end
+    return name
+end
+
 function H:Refresh()
     if not (self.frame and self.frame:IsShown()) then return end
     self:ApplyOpacity()
-    self.data = A:Rows(self.onlyMine)
+    local minQ = self:MinQuality()
+    self.qualityButton:SetText(minQ > 0 and L.fromQuality:format(QualityName(minQ)) or L.allQualities)
+    self.data = A:Rows(self.onlyMine, minQ)
     local items = 0
     for _, r in ipairs(self.data) do
         if r.kind == "group" then items = items + r.count end

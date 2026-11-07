@@ -43,6 +43,7 @@ function A:Record(roll)
         self:Trim()
     end
     e.link, e.texture, e.count = roll.link, roll.texture, roll.count
+    e.quality = roll.quality or A.QualityOf(e)
     e.ts = roll.ts
     e.zone, e.zoneType = roll.zone, roll.zoneType
     e.result, e.winner = roll.result, roll.winner
@@ -61,6 +62,19 @@ function A:Clear()
     self:Fire()
 end
 
+-- Item quality (0 grey … 5 orange) from the entry or its link colour.
+local HEX_QUALITY = {
+    ff9d9d9d = 0, ffffffff = 1, ff1eff00 = 2, ff0070dd = 3, ffa335ee = 4, ffff8000 = 5, ffe6cc80 = 6,
+}
+function A.QualityOf(e)
+    if e.quality then return e.quality end
+    local link = e.link or ""
+    local q = tonumber(link:match("|cnIQ(%d+):") or "")
+    if q then return q end
+    local hex = link:match("|c(%x%x%x%x%x%x%x%x)")
+    return hex and HEX_QUALITY[hex:lower()] or nil
+end
+
 function A.IsMine(e)
     return e.result == "won" and e.winner == Me()
 end
@@ -77,7 +91,7 @@ end
 --   { kind = "group", id, zone, zoneType, from, to, count, collapsed }
 --   { kind = "item", entry }
 -- A group is one visit: the same place without a long pause in between.
-function A:Rows(onlyMine)
+function A:Rows(onlyMine, minQuality)
     local rows, group = {}, nil
     local list = self.list or {}
     local prevTs
@@ -102,7 +116,9 @@ function A:Rows(onlyMine)
         end
         group.from = ts
         prevTs = ts
-        if not onlyMine or A.IsMine(e) then
+        local q = A.QualityOf(e)
+        local qualityOk = not minQuality or minQuality <= 0 or (q and q >= minQuality)
+        if (not onlyMine or A.IsMine(e)) and qualityOk then
             group.count = group.count + 1
             group.id = zone .. "@" .. tostring(group.to)
             if not self.collapsed[group.id] then

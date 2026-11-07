@@ -245,15 +245,13 @@ local function CreateBlock()
     icon:SetPoint("LEFT", UI.native and 6 or 1, 0)
     block.icon = icon
     if UI.native then
-        -- gear slot from the character window around the icon
-        local gearSlot = header:CreateTexture(nil, "ARTWORK")
-        if S.Atlas(gearSlot, "slot", true) then
-            gearSlot:SetPoint("CENTER", icon, "CENTER", 0, 0)
-            icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-            icon:SetSize(ICON - 4, ICON - 4)
-        else
-            gearSlot:Hide()
-        end
+        -- thin item border as on bag and loot buttons, tinted by quality
+        icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        icon:SetSize(ICON - 4, ICON - 4)
+        local border = header:CreateTexture(nil, "OVERLAY")
+        border:SetTexture("Interface\\Common\\WhiteIconFrame")
+        border:SetAllPoints(icon)
+        block.iconBorder = border
     end
     -- classic bag slot frame around the icon
     local slot = header:CreateTexture(nil, "BACKGROUND", nil, 1)
@@ -443,6 +441,12 @@ function UI:FillBlock(block, roll)
     block.item:SetText(R.ItemName(roll.link) or roll.name or "?")
     block.item:SetTextColor(QualityColor(roll))
     local q = roll.quality or (roll.link and tonumber(roll.link:match("|cnIQ(%d+):") or ""))
+    if block.iconBorder then
+        local r, g, b = QualityColor(roll)
+        if not (q and q >= 2) then r, g, b = 0.6, 0.6, 0.6 end
+        block.iconBorder:SetVertexColor(r, g, b)
+        block.iconBorder:SetAlpha((roll.done and not (roll.result == "won" and ns.PlayerName and roll.winner == ns.PlayerName())) and 0.6 or 1)
+    end
     if q and q >= 2 and not UI.native then
         block.glow:SetVertexColor(QualityColor(roll))
         block.glow:SetAlpha(roll.done and 0.35 or 0.8)

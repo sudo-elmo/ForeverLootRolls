@@ -23,7 +23,7 @@ As soon as your group has to roll on an item, the window opens and shows live wh
 
 ## Look
 
-The windows use WoW Forever's own interface parts, the same as the character and reputation window: the metal window frame with title bar, the character pane background, list headers with +/-, the gear slot, striped rows, the reputation bar for the time left and Blizzard's slim scroll bar. If a client lacks any of these, the windows fall back to a classic look.
+The windows use WoW Forever's own interface parts, the same as the character and reputation window: the metal window frame with title bar, the character pane background, list headers with +/-, the thin quality coloured item border, striped rows, the reputation bar for the time left and Blizzard's slim scroll bar. If a client lacks any of these, the windows fall back to a classic look.
 
 ## Commands
 

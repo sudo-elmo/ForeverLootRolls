@@ -1,6 +1,6 @@
 -- Native WoW Forever look ("Camelot" UI, as in the character / reputation
 -- window): metal panel frame, character pane background, list headers with
--- +/-, gear slot, striped rows, reputation style progress bar, minimal scroll
+-- +/-, striped rows, reputation style progress bar, minimal scroll
 -- bar and minimal checkboxes.
 -- Every helper checks that the client has the template or atlas and returns
 -- nil / false otherwise, so the windows fall back to their classic look.
@@ -14,7 +14,6 @@ S.ATLAS = {
     header = "common-button-list-collapseExpand",
     plus = "common-button-list-plus",
     minus = "common-button-list-minus",
-    slot = "UI-Character-Info-GearSlot",
     line = "UI-Character-Info-Line-Bounce",
     hover = "charactercreate-customize-dropdown-linemouseover-middle",
     checkbox = "checkbox-minimal",

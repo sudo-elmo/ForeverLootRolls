@@ -461,9 +461,11 @@ function H:Draw()
         local data = rows[self.offset + i]
         local h = self:RowHeight(data)
         if data and y + h <= self.viewHeight + 0.5 then
+            -- native: entries no wider than the group plate without its ornate ends
+            local inset = (self.native and data.kind ~= "group") and 10 or 0
             row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", 0, -y)
-            row:SetPoint("TOPRIGHT", 0, -y)
+            row:SetPoint("TOPLEFT", inset, -y)
+            row:SetPoint("TOPRIGHT", -inset, -y)
             row:SetHeight(h)
             FillRow(row, data)
             row:Show()

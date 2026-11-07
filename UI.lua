@@ -11,7 +11,9 @@ local WIDTH = 270
 local PAD = 14             -- inside the dialog border
 local CONTENT_W = WIDTH - 2 * PAD
 local CARD = 6             -- padding inside each item card
-local INNER_W = CONTENT_W - 2 * CARD
+local INSET = 6            -- player lines / roll buttons: in from the card edge
+                           -- (native: as wide as the plate without its ornate ends)
+local INNER_W = CONTENT_W - 2 * INSET
 local ROW_H = 32           -- item line
 local ICON = 30
 local BTN = 30             -- classic Need / Greed / Pass icon buttons
@@ -265,8 +267,8 @@ local function CreateBlock()
     block.glow = glow
 
     block.btnRow = CreateFrame("Frame", nil, block)
-    block.btnRow:SetPoint("TOPLEFT", CARD, -CARD - ROW_H - 2)
-    block.btnRow:SetPoint("TOPRIGHT", -CARD, -CARD - ROW_H - 2)
+    block.btnRow:SetPoint("TOPLEFT", INSET, -CARD - ROW_H - 2)
+    block.btnRow:SetPoint("TOPRIGHT", -INSET, -CARD - ROW_H - 2)
     block.btnRow:SetHeight(BTN_ROW)
     block.buttons = {}
     for _, def in ipairs(ROLL_BUTTONS) do
@@ -483,8 +485,8 @@ function UI:FillBlock(block, roll)
     if not self:IsCollapsed(roll) then
         for _, p in ipairs(R.SortedPlayers(roll)) do
             local line = AcquireLine(block)
-            line:SetPoint("TOPLEFT", CARD, y)
-            line:SetPoint("TOPRIGHT", -CARD, y)
+            line:SetPoint("TOPLEFT", INSET, y)
+            line:SetPoint("TOPRIGHT", -INSET, y)
             FillLine(line, p, roll, #block.lines + 1)
             block.lines[#block.lines + 1] = line
             y = y - LINE_H
@@ -561,9 +563,10 @@ function UI:Create()
         -- the list headers bring their own frame: a bit wider, no extra
         -- card padding, rows closer together
         WIDTH, CARD, GAP = 320, 0, 4
+        INSET = 12
         ROW_H, ICON = 36, 24
         CONTENT_W = WIDTH - 2 * PAD
-        INNER_W = CONTENT_W - 2 * CARD
+        INNER_W = CONTENT_W - 2 * INSET
     end
     f = f or CreateFrame("Frame", "ForeverLootRollsFrame", UIParent, BACKDROP_TEMPLATE)
     f:SetSize(WIDTH, 40)
@@ -834,7 +837,7 @@ function UI:LayoutBlocks(width)
     for i = #R.list, 1, -1 do
         local block = AcquireBlock(self.content)
         block:SetWidth(width)
-        block.innerW = width - 2 * CARD
+        block.innerW = width - 2 * INSET
         block:SetPoint("TOPLEFT", 0, -y)
         y = y + self:FillBlock(block, R.list[i]) + GAP
         self.blocks[#self.blocks + 1] = block

@@ -237,7 +237,7 @@ local function CreateBlock()
         -- + / - on the right, like reputation headers
         block.state = header:CreateTexture(nil, "ARTWORK")
         block.state:SetSize(14, 14)
-        block.state:SetPoint("RIGHT", -14, 0)
+        block.state:SetPoint("RIGHT", -22, 0)   -- clear of the plate's ornate right end
     end
 
     local icon = header:CreateTexture(nil, "ARTWORK", nil, 1)
@@ -275,7 +275,7 @@ local function CreateBlock()
 
     -- who got it, shown small on the right while the block is folded in
     block.winner = Font(header, "GameFontHighlightSmall")
-    block.winner:SetPoint("RIGHT", UI.native and -30 or 0, 0)
+    block.winner:SetPoint("RIGHT", UI.native and -40 or 0, 0)
     block.winner:SetJustifyH("RIGHT")
     block.winner:Hide()
 
@@ -305,7 +305,7 @@ local function CreateBlock()
         local pbar = S.ProgressBar(header)
         if pbar then
             pbar:SetSize(96, 24)
-            pbar:SetPoint("RIGHT", -30, 0)
+            pbar:SetPoint("RIGHT", -40, 0)
             pbar:Hide()
             block.pbar = pbar
             bar:Hide()
@@ -357,7 +357,7 @@ function UI:UpdateBlockLive(block)
             if block.winner:IsShown() then
                 block.item:SetPoint("RIGHT", block.winner, "LEFT", -6, 0)
             else
-                block.item:SetPoint("RIGHT", -30, 0)
+                block.item:SetPoint("RIGHT", -40, 0)
             end
         end
         if block.btnRow:IsShown() and not (R.CanRoll(roll) and left > 0) then block.btnRow:Hide() end
@@ -560,7 +560,7 @@ function UI:Create()
     if self.native then
         -- the list headers bring their own frame: a bit wider, no extra
         -- card padding, rows closer together
-        WIDTH, CARD, GAP = 300, 0, 4
+        WIDTH, CARD, GAP = 320, 0, 4
         ROW_H, ICON = 36, 24
         CONTENT_W = WIDTH - 2 * PAD
         INNER_W = CONTENT_W - 2 * CARD

@@ -7,7 +7,7 @@ local L, A, S = ns.L, ns.Archive, ns.Skin
 local H = {}
 ns.HistoryUI = H
 
-local WIDTH, HEIGHT = 380, 460
+local WIDTH, HEIGHT = 400, 460
 local PAD = 16
 local TOP = 52            -- banner + filter row (native: see FILTER_Y)
 local FILTER_Y = -36      -- centre of the filter row (classic)
@@ -118,13 +118,13 @@ local function CreateRow(parent)
     -- classic: on the left like the quest log)
     row.arrow = row:CreateTexture(nil, "ARTWORK")
     row.arrow:SetSize(14, 14)
-    row.arrow:SetPoint(H.native and "RIGHT" or "LEFT", H.native and -14 or 0, 0)
+    row.arrow:SetPoint(H.native and "RIGHT" or "LEFT", H.native and -22 or 0, 0)
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.title:SetPoint("LEFT", H.native and 22 or 16, 0)
     row.title:SetJustifyH("LEFT")
     row.title:SetWordWrap(false)
     row.when = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.when:SetPoint("RIGHT", H.native and -32 or -4, 0)
+    row.when:SetPoint("RIGHT", H.native and -42 or -4, 0)
     row.when:SetTextColor(0.7, 0.7, 0.7)
     row.title:SetPoint("RIGHT", row.when, "LEFT", -6, 0)
 

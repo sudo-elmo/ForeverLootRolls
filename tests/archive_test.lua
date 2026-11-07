@@ -84,6 +84,22 @@ do
     eq(#groups, 2, "two runs of the same dungeon = two groups")
     eq(groups[1].count, 2, "one run with a long break stays one group")
     eq(groups[2].count, 2, "first run")
+
+    -- entries without a run ID: another group = another run, even without a pause
+    local function P(...) local t = {} for _, n in ipairs({ ... }) do t[#t + 1] = { name = n } end return t end
+    for i = #list, 1, -1 do list[i] = nil end
+    list[1] = E(1000); list[1].players = P("Thalos", "Kraggus", "Elicius", "Kaelthor")
+    list[2] = E(1100)                                                                    -- nobody listed
+    list[3] = E(1150); list[3].players = P("Thalos", "Kraggus", "Elicius", "Neuer")       -- replacement
+    list[4] = E(1200); list[4].players = P("Tjondir", "Pilazius", "Krabat", "Dubi")
+    groups = {}
+    for _, r in ipairs(A2:Rows(false)) do if r.kind == "group" then groups[#groups + 1] = r end end
+    eq(#groups, 2, "old entries: another group = another run")
+    eq(groups[1].count, 1, "second group")
+    eq(groups[2].count, 3, "a replacement or an entry without players stays in the run")
+    eq(A.SameGroup({ Tank = true }, { Tank = true, Heal = true }), true, "someone joined: same group")
+    eq(A.SameGroup({ A = true, B = true }, { C = true, D = true }), false, "all new: other group")
+    eq(A.SameGroup({}, { C = true }), false, "solo, then a group: other group")
 end
 
 -- quality filter: the drops are green (|cnIQ2), so "from rare" hides them all

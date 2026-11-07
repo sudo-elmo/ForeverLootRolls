@@ -117,60 +117,101 @@ end
 -- ---------------------------------------------------------------- new dungeon run
 
 -- A new run starts the list fresh (setting "clear on a new dungeon run").
--- Normal dungeons have no instance ID the API hands out, but every creature
--- GUID carries one: Creature-0-<server>-<map ID>-<zone UID>-<npc ID>-<spawn>.
--- The zone UID is different for every copy of a dungeon: after a reset the
--- mobs have a new one, after a corpse run or /reload the same one. So:
---   * a different dungeon or raid           -> new run, right away
---   * the same one, first creature seen with
---     a different zone UID than last time   -> new run
-function ns.ParseCreatureGUID(guid)
-    if type(guid) ~= "string" then return nil end
-    local kind, mapID, zoneUID = guid:match("^(%a+)%-%d+%-%d+%-(%d+)%-(%d+)%-")
-    if kind == "Creature" or kind == "Vehicle" or kind == "GameObject" then
-        return tonumber(mapID), zoneUID
+-- Normal dungeons have no instance ID the API hands out, and Forever hides
+-- creature GUIDs (secret values) inside instances, so a run is recognised by
+-- what can be seen:
+--   * a different dungeon or raid                         -> new run
+--   * the same one, but "<dungeon> has been reset" came   -> new run
+--   * the same one with another group (fewer than half of
+--     the last run's members still there)                 -> new run
+--   * the same one, the same group (corpse run, back from
+--     town, /reload)                                      -> same run
+-- Each run gets a number; rolls and history entries carry "<map ID>:<number>".
+
+local function Plain(v)
+    if type(issecretvalue) == "function" and issecretvalue(v) then return nil end
+    return v
+end
+
+-- The other group members' names (not ours), as a set; nil if a name is not
+-- known yet (still loading after login).
+function ns.GroupMembers()
+    local out, unknown = {}, false
+    local me = ns.PlayerName()
+    local function Add(unit)
+        local okE, exists = pcall(UnitExists, unit)
+        if not (okE and Plain(exists)) then return end
+        local ok, name = pcall(UnitName, unit)
+        name = ok and Plain(name)
+        if type(name) ~= "string" or name == "" or name == UNKNOWNOBJECT then unknown = true return end
+        name = ns.ShortName(name)
+        if name ~= me then out[name] = true end
     end
+    if IsInRaid and IsInRaid() then
+        for i = 1, (GetNumGroupMembers and GetNumGroupMembers() or 0) do Add("raid" .. i) end
+    else
+        for i = 1, (GetNumSubgroupMembers and GetNumSubgroupMembers() or 0) do Add("party" .. i) end
+    end
+    if unknown then return nil end
+    return out
 end
 
 local function NewRun()
     if ns.db and ns.db.clearOnNewInstance then R:ClearFinished() end
 end
 
-function ns.OnDungeonChange(dungeon)
+-- isLogin: logging in or /reload (the group may still be loading)
+function ns.OnDungeonChange(dungeon, isLogin)
     local db = ns.charDB
     if not db then return end
     db.inDungeon = dungeon and true or false
-    if not dungeon then
-        ns.watchRun = nil
-        return
+    db.lastInstance, db.lastZoneUID = nil, nil   -- GUID based detection of 0.x
+    if not dungeon then return end
+    local instanceID = GetInstanceInfo and select(8, GetInstanceInfo()) or 0
+    local run = db.run
+    local members = ns.GroupMembers()
+    local new
+    if not run or run.instance ~= instanceID then
+        new = true
+    elseif db.resetSeen then
+        new = true
+    elseif members and not isLogin then
+        new = not ns.Archive.SameGroup(run.members, members)
     end
-    local instanceID = GetInstanceInfo and select(8, GetInstanceInfo())
-    if instanceID and instanceID ~= db.lastInstance then
-        db.lastInstance, db.lastZoneUID = instanceID, nil
+    db.resetSeen = nil
+    if new then
+        db.runCount = (db.runCount or 0) + 1
+        db.run = { instance = instanceID, n = db.runCount, members = members or {} }
         NewRun()
+    elseif members then
+        for name in pairs(members) do run.members[name] = true end
     end
-    -- find out which copy of the dungeon this is from the first creature we see
-    ns.watchRun = instanceID
 end
 
--- The current dungeon run ("<map ID>:<zone UID>"), nil outside or while unknown.
+-- Someone joins during the run: the run remembers everyone who was in the
+-- group, so a replacement does not make the next entry a new run.
+function ns.OnGroupChanged()
+    local db = ns.charDB
+    if not (db and db.inDungeon and db.run) then return end
+    for name in pairs(ns.GroupMembers() or {}) do db.run.members[name] = true end
+end
+
+-- "<dungeon> has been reset." (the group leader, and members who are outside)
+local resetPattern
+function ns.OnSystemMessage(msg)
+    if type(msg) ~= "string" or not INSTANCE_RESET_SUCCESS then return end
+    if not resetPattern then
+        resetPattern = "^" .. INSTANCE_RESET_SUCCESS:gsub("([%(%)%.%+%-%*%?%[%]%^%$])", "%%%1"):gsub("%%s", ".+") .. "$"
+    end
+    if msg:match(resetPattern) and ns.charDB then ns.charDB.resetSeen = true end
+end
+
+-- The current dungeon run ("<map ID>:<run number>"), nil outside.
 function ns.GetRun()
     local db = ns.charDB
-    if db and db.inDungeon and db.lastZoneUID and not ns.watchRun then
-        return tostring(db.lastInstance) .. ":" .. db.lastZoneUID
+    if db and db.inDungeon and db.run then
+        return tostring(db.run.instance) .. ":" .. tostring(db.run.n)
     end
-end
-
--- Called for nameplates, the target and the mouseover unit while in a dungeon.
-function ns.SeeUnit(unit)
-    local instanceID = ns.watchRun
-    if not instanceID or not UnitGUID then return end
-    local mapID, zoneUID = ns.ParseCreatureGUID(UnitGUID(unit))
-    if not (mapID and zoneUID) or mapID ~= instanceID then return end
-    ns.watchRun = nil
-    local db = ns.charDB
-    if db.lastZoneUID and db.lastZoneUID ~= zoneUID then NewRun() end
-    db.lastInstance, db.lastZoneUID = instanceID, zoneUID
 end
 
 local HISTORY_VERSION = 2
@@ -221,7 +262,7 @@ ev:RegisterEvent("PLAYER_ENTERING_WORLD")
 ev:RegisterEvent("START_LOOT_ROLL")
 ev:RegisterEvent("CANCEL_LOOT_ROLL")
 ev:RegisterEvent("CHAT_MSG_LOOT")
-for _, e in ipairs({ "NAME_PLATE_UNIT_ADDED", "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT" }) do
+for _, e in ipairs({ "GROUP_ROSTER_UPDATE", "CHAT_MSG_SYSTEM" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 ev:SetScript("OnEvent", function(_, event, ...)
@@ -285,19 +326,17 @@ ev:SetScript("OnEvent", function(_, event, ...)
         ns.Archive:Attach(ns.charDB.archive)
         P.Build()
     elseif event == "PLAYER_ENTERING_WORLD" then
+        local isLogin, isReload = ...
         local dungeon = ns.InDungeon()
-        ns.OnDungeonChange(dungeon)
+        ns.OnDungeonChange(dungeon, isLogin or isReload)
         UI:OnZoneChanged(dungeon)
-    elseif event == "NAME_PLATE_UNIT_ADDED" then
-        if ns.watchRun then ns.SeeUnit((...)) end
-    elseif event == "PLAYER_TARGET_CHANGED" then
-        if ns.watchRun then ns.SeeUnit("target") end
-    elseif event == "UPDATE_MOUSEOVER_UNIT" then
-        if ns.watchRun then ns.SeeUnit("mouseover") end
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        ns.OnGroupChanged()
+    elseif event == "CHAT_MSG_SYSTEM" then
+        ns.OnSystemMessage((...))
     elseif event == "PLAYER_LOGOUT" then
         SaveHistory()
     elseif event == "START_LOOT_ROLL" then
-        if ns.watchRun then ns.SeeUnit("target") end   -- last chance before the roll
         OnStartRoll(...)
     elseif event == "CANCEL_LOOT_ROLL" then
         R:Close((...))

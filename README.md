@@ -16,8 +16,8 @@ As soon as your group has to roll on an item, the window opens and shows live wh
 - Big Need / Greed / Pass buttons right under the item while you still have to roll (can be turned off)
 - Closes a few seconds after the last roll is done; stays open while your mouse is over it
 - Finished rolls stay in the list per character (also after `/reload`); the Clear button empties it
-- The list starts fresh with every new dungeon or raid run: a different dungeon, or a new copy of the same one after a reset, told apart by the instance ID in its creatures' GUIDs (a corpse run or /reload keeps it; can be turned off)
-- **Loot history** (note button, top left): every item ever rolled on, newest first, grouped by dungeon run (each copy of a dungeon is its own group, even the same dungeon twice in a row) or zone visit, with time, winner and roll. Kept when you clear the list or change dungeons. Filters: "only my wins" and item quality (e.g. from rare, to hide green items).
+- The list starts fresh with every new dungeon or raid run: a different dungeon, the same one with another group, or the same group after a "has been reset" message (a corpse run, a trip to town or /reload keeps it; can be turned off). Forever hides creature GUIDs inside instances, so the copy of a dungeon cannot be read directly; with the same group and no reset message seen (e.g. solo, or another player reset it) a reset is not noticed
+- **Loot history** (note button, top left): every item ever rolled on, newest first, grouped by dungeon run (each run is its own group, even the same dungeon twice in a row; older entries are told apart by the group you were in) or zone visit, with time, winner and roll. Kept when you clear the list or change dungeons. Filters: "only my wins" and item quality (e.g. from rare, to hide green items).
 - Shift-click an item to link it in chat, Ctrl-click to try it on
 - English and German (follows your game language); the chat messages are read in every game language
 

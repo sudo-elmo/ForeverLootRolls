@@ -88,10 +88,41 @@ function A.WinnerOf(e)
     return { name = e.winner }
 end
 
+-- Still the same group? At least half of the smaller group is in both.
+-- Takes sets ({ name = true }) or lists of player tables ({ name = ... });
+-- our own name does not count.
+function A.SameGroup(a, b)
+    local me = Me()
+    local function Set(t)
+        local s, n = {}, 0
+        for k, v in pairs(t or {}) do
+            local name = (v == true and k) or (type(v) == "table" and v.name) or nil
+            if type(name) == "string" and name ~= me and not s[name] then s[name] = true n = n + 1 end
+        end
+        return s, n
+    end
+    local sa, na = Set(a)
+    local sb, nb = Set(b)
+    if na == 0 and nb == 0 then return true end
+    if na == 0 or nb == 0 then return false end
+    local both = 0
+    for name in pairs(sa) do if sb[name] then both = both + 1 end end
+    return both * 2 >= math.min(na, nb)
+end
+
+local function HasOthers(players)
+    local me = Me()
+    for _, p in ipairs(players or {}) do
+        if p.name and p.name ~= me then return true end
+    end
+    return false
+end
+
 -- Flat list of rows for the window, newest first:
 --   { kind = "group", id, zone, zoneType, from, to, count, collapsed }
 --   { kind = "item", entry }
--- A group is one visit: the same place without a long pause in between.
+-- A group is one visit: one dungeon run where the run is known, else the same
+-- place with the same group and without a long pause in between.
 function A:Rows(onlyMine, minQuality)
     local rows, group = {}, nil
     local list = self.list or {}
@@ -108,21 +139,25 @@ function A:Rows(onlyMine, minQuality)
         local e = list[i]
         local zone = e.zone or "?"
         local ts = e.ts or 0
-        -- one group per visit: per dungeon run where the run is known (instance
-        -- ID from creature GUIDs), else per place without a long pause
+        -- one group per visit: per dungeon run where the run is known, else per
+        -- place and group without a long pause (rolls of a solo player or
+        -- with no one else listed say nothing about the group)
         local newRun
         if not group or group.zone ~= zone then
             newRun = true
         elseif e.run or group.run then
             newRun = e.run ~= group.run
         else
-            newRun = prevTs and prevTs - ts > A.RUN_GAP
+            newRun = (prevTs and prevTs - ts > A.RUN_GAP)
+                or (group.players and HasOthers(e.players) and not A.SameGroup(group.players, e.players))
         end
         if newRun then
             Close()
-            group = { kind = "group", zone = zone, zoneType = e.zoneType, run = e.run, from = ts, to = ts, count = 0 }
+            group = { kind = "group", zone = zone, zoneType = e.zoneType, run = e.run,
+                from = ts, to = ts, count = 0 }
             rows[#rows + 1] = group
         end
+        if not group.players and HasOthers(e.players) then group.players = e.players end
         group.from = ts
         prevTs = ts
         local q = A.QualityOf(e)

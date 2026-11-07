@@ -90,12 +90,18 @@ GetLocale = function() return os.getenv("LOCALE") or "deDE" end
 GetTime = function() return now end
 time = os.time
 date = os.date
-UnitName = function(u) if u == "player" then return "Me" end if u == "party1" then return "Tank" end end
+local party = { "Tank" }
+UnitName = function(u)
+    if u == "player" then return "Me" end
+    local i = tonumber(u:match("^party(%d)$") or "")
+    return i and party[i]
+end
 UnitClass = function() return "Mage", "MAGE" end
-UnitExists = function(u) return u == "player" or u == "party1" end
+UnitExists = function(u) return u == "player" or UnitName(u) ~= nil end
 IsInRaid = function() return false end
-GetNumSubgroupMembers = function() return 1 end
-GetNumGroupMembers = function() return 2 end
+GetNumSubgroupMembers = function() return #party end
+GetNumGroupMembers = function() return #party + 1 end
+INSTANCE_RESET_SUCCESS = "%s has been reset."
 local inDungeon = false
 IsInInstance = function() if inDungeon then return true, "party" end return false, "none" end
 UNKNOWNOBJECT = "Unknown"
@@ -317,46 +323,53 @@ Fire("PLAYER_ENTERING_WORLD")
 eq(#ns.Rolls.list, 1, "option off keeps the list")
 ns.db.clearOnNewInstance = true
 
--- the same dungeon again: the creatures' zone UID tells the copies apart
-local guid
-UnitGUID = function() return guid end
+-- the same dungeon again: told apart by the group and the reset message
+-- (Forever hides creature GUIDs in instances)
 local function OneFinishedRoll(id)
     Fire("START_LOOT_ROLL", id, 60000)
     Fire("CHAT_MSG_LOOT", "Everyone passed on: " .. link)
 end
-local function Mob(zoneUID) return ("Creature-0-4372-%d-%s-3671-000ABCDEF0"):format(instanceID, zoneUID) end
-eq(ns.ParseCreatureGUID("Creature-0-4372-43-1234-3671-000ABCDEF0"), 43, "map ID from a creature GUID")
-eq(select(2, ns.ParseCreatureGUID("Creature-0-4372-43-1234-3671-000ABCDEF0")), "1234", "zone UID from a creature GUID")
-eq(ns.ParseCreatureGUID("Player-4372-0ABCDEF0"), nil, "players carry no zone UID")
+local function Enter(isReload) inDungeon = true; Fire("PLAYER_ENTERING_WORLD", false, isReload or false) end
+local function Leave() inDungeon = false; Fire("PLAYER_ENTERING_WORLD", false, false) end
 
 instanceID = 43
-inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
-guid = Mob("1111"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
+party = { "Thalos", "Kraggus", "Elicius", "Kaelthor" }
+Enter()
 OneFinishedRoll(80)
 local n0 = #ns.Rolls.list
 eq(n0 > 0, true, "rolls in the first run")
-inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- died / left
-inDungeon = true; Fire("PLAYER_ENTERING_WORLD")                    -- back in
-guid = Mob("1111"); Fire("PLAYER_TARGET_CHANGED")                  -- same copy (corpse run)
-eq(#ns.Rolls.list, n0, "same zone UID (corpse run) keeps the list")
-Fire("PLAYER_ENTERING_WORLD")                                      -- /reload inside
-guid = Mob("1111"); Fire("UPDATE_MOUSEOVER_UNIT")
+local run1 = ns.Rolls:Get(80).run
+eq(type(run1), "string", "roll knows its dungeon run")
+Leave(); Enter()                                                   -- corpse run / back from town
+eq(#ns.Rolls.list, n0, "same group (corpse run) keeps the list")
+Enter(true)                                                        -- /reload inside
 eq(#ns.Rolls.list, n0, "/reload inside keeps the list")
-inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- out, reset
-inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
-guid = "Player-4372-0ABCDEF0"; Fire("PLAYER_TARGET_CHANGED")       -- a player says nothing
-eq(#ns.Rolls.list, n0, "players do not decide anything")
-guid = Mob("2222"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate2")    -- new copy
-eq(#ns.Rolls.list, 0, "new zone UID (reset) = new run, list cleared")
+party = { "Thalos", "Kraggus", "Elicius", "Neuer" }; Fire("GROUP_ROSTER_UPDATE")  -- replacement
+Leave()
+party = { "Thalos", "Neuer" }                                      -- two left on the way
+Enter()
+eq(#ns.Rolls.list, n0, "replacement and leavers keep the run")
+Leave()
+party = { "Tjondir", "Pilazius", "Krabat", "Dubi" }                -- next group, same dungeon
+Enter()
+eq(#ns.Rolls.list, 0, "another group in the same dungeon = new run, list cleared")
 OneFinishedRoll(81)
-eq(ns.Rolls:Get(81).run, "43:2222", "roll knows its dungeon run")
-eq(ForeverLootRollsCharDB.archive[#ForeverLootRollsCharDB.archive].run, "43:2222", "history entry knows its run")
-guid = Mob("3333"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate3")    -- later units are not checked again
-eq(#ns.Rolls.list, 1, "decided once per entry")
+local run2 = ns.Rolls:Get(81).run
+eq(run2 ~= run1, true, "the new run has its own ID")
+eq(ForeverLootRollsCharDB.archive[#ForeverLootRollsCharDB.archive].run, run2, "history entry knows its run")
+Leave()
+Fire("CHAT_MSG_SYSTEM", "Höhlen des Wehklagens has been reset.")  -- same group, reset
+Fire("CHAT_MSG_SYSTEM", "Something else.")
+Enter()
+eq(#ns.Rolls.list, 0, "reset message = new run")
+OneFinishedRoll(82)
+eq(ns.Rolls:Get(82).run ~= run2, true, "run after a reset has its own ID")
+Leave(); Enter()
+eq(#ns.Rolls.list, 1, "reset is used once")
 instanceID = 36
-inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
+Enter()
 eq(#ns.Rolls.list, 0, "a different dungeon clears right away")
-guid = nil
+party = { "Tank" }
 -- long list gets a scroll bar instead of a taller window
 ns.db.collapseMode = "never"
 for id = 40, 47 do

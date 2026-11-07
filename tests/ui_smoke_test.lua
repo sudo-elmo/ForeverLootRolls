@@ -390,6 +390,27 @@ eq(ns.db.historyMinQuality, 3, "dropdown: from rare")
 eq(radios[3].isSelected(), true, "dropdown shows the choice")
 radios[1].setSelected()
 eq(ns.db.historyMinQuality, 0, "dropdown: back to all")
+-- many entries in several places: rows of mixed heights stay inside the list
+for i = 1, 60 do
+    local e = { link = "|cnIQ3:|Hitem:" .. (1000 + i) .. "::::|h[Item " .. i .. "]|h|r", ts = 2000000 + i * 60,
+        zone = "Zone " .. math.floor(i / 7), zoneType = "party", result = "allpassed", players = {} }
+    table.insert(ForeverLootRollsCharDB.archive, e)
+end
+hist:Refresh()
+local function UsedHeight()
+    local h, n, lastShown = 0, 0, nil
+    for _, row in ipairs(hist.rows) do
+        if row:IsShown() and row.data then h = h + hist:RowHeight(row.data) n = n + 1 lastShown = row.data end
+    end
+    return h, n, lastShown
+end
+local used, count = UsedHeight()
+eq(used <= hist.viewHeight, true, "rows of mixed heights fit the list")
+eq(count > 5, true, "a page of rows is shown")
+hist.offset = 9999
+hist:Draw()
+local _, _, last = UsedHeight()
+eq(last, hist.data[#hist.data], "scrolled to the end: last row visible")
 hist.clearButton._scripts.OnClick(hist.clearButton)
 eq(#ForeverLootRollsCharDB.archive, 0, "delete history (after confirming)")
 eq(hist.empty and hist.data and #hist.data, 0, "history window empty")

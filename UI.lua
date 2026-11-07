@@ -236,7 +236,7 @@ local function CreateBlock()
         if not S.Atlas(block.headerBg, "header") then block.headerBg:SetColorTexture(1, 1, 1, 0.06) end
         -- + / - on the right, like reputation headers
         block.state = header:CreateTexture(nil, "ARTWORK")
-        block.state:SetSize(11, 11)
+        block.state:SetSize(14, 14)
         block.state:SetPoint("RIGHT", -14, 0)
     end
 

@@ -11,7 +11,8 @@ local WIDTH, HEIGHT = 380, 460
 local PAD = 16
 local TOP = 52            -- banner + filter row
 local BOTTOM = 40         -- delete button row
-local ROW_H = 22
+local ROW_H = 22          -- item and player rows
+local GROUP_H = 32        -- group headers (native look)
 local SCROLLBAR_W = 14
 local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
 
@@ -114,7 +115,7 @@ local function CreateRow(parent)
     -- group header: + / - (native: on the right like reputation headers,
     -- classic: on the left like the quest log)
     row.arrow = row:CreateTexture(nil, "ARTWORK")
-    row.arrow:SetSize(H.native and 11 or 14, H.native and 11 or 14)
+    row.arrow:SetSize(14, 14)
     row.arrow:SetPoint(H.native and "RIGHT" or "LEFT", H.native and -14 or 0, 0)
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.title:SetPoint("LEFT", H.native and 22 or 16, 0)
@@ -346,13 +347,13 @@ function H:Create()
     view:EnableMouseWheel(true)
     view:SetScript("OnMouseWheel", function(_, delta) H:ScrollBy(-delta * 3) end)
     self.view = view
-    self.visible = math.floor((HEIGHT - TOP - BOTTOM) / ROW_H)
+    -- rows have different heights (group headers are taller), so the pool
+    -- holds enough frames for a page of the smallest rows
+    self.viewHeight = HEIGHT - TOP - BOTTOM
+    self.visible = math.floor(self.viewHeight / ROW_H)
     self.rows = {}
-    for i = 1, self.visible do
-        local row = CreateRow(view)
-        row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
-        row:SetPoint("TOPRIGHT", 0, -(i - 1) * ROW_H)
-        self.rows[i] = row
+    for i = 1, self.visible + 1 do
+        self.rows[i] = CreateRow(view)
     end
 
     self.empty = view:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -367,8 +368,7 @@ function H:Create()
         local event = (BaseScrollBoxEvents and BaseScrollBoxEvents.OnScroll) or "OnScroll"
         nativeBar:RegisterCallback(event, function(_, pct)
             if H.settingBar then return end
-            local maxOffset = math.max(0, #(H.data or {}) - H.visible)
-            H.offset = math.floor((tonumber(pct) or 0) * maxOffset + 0.5)
+            H.offset = math.floor((tonumber(pct) or 0) * H:MaxOffset() + 0.5)
             H:Draw()
         end, H)
         self.nativeBar = nativeBar
@@ -431,15 +431,40 @@ function H:ScrollBy(n)
     self:Draw()
 end
 
+function H:RowHeight(data)
+    if data and data.kind == "group" and self.native then return GROUP_H end
+    return ROW_H
+end
+
+-- First row index from which the rest of the list fits on one page.
+function H:MaxOffset()
+    local rows = self.data or {}
+    local h, i = 0, #rows
+    while i >= 1 do
+        h = h + self:RowHeight(rows[i])
+        if h > self.viewHeight then break end
+        i = i - 1
+    end
+    return math.max(0, i)
+end
+
 function H:Draw()
     local rows = self.data or {}
-    local maxOffset = math.max(0, #rows - self.visible)
+    local maxOffset = self:MaxOffset()
     self.offset = math.min(maxOffset, math.max(0, self.offset or 0))
+    local y, shown = 0, 0
     for i, row in ipairs(self.rows) do
         local data = rows[self.offset + i]
-        if data then
+        local h = self:RowHeight(data)
+        if data and y + h <= self.viewHeight + 0.5 then
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 0, -y)
+            row:SetPoint("TOPRIGHT", 0, -y)
+            row:SetHeight(h)
             FillRow(row, data)
             row:Show()
+            y = y + h
+            shown = shown + 1
         else
             row.data = nil
             row:Hide()
@@ -448,7 +473,7 @@ function H:Draw()
     self.empty:SetShown(#rows == 0)
     if maxOffset > 0 and self.nativeBar then
         self.settingBar = true
-        if self.bar.SetVisibleExtentPercentage then self.bar:SetVisibleExtentPercentage(self.visible / #rows) end
+        if self.bar.SetVisibleExtentPercentage then self.bar:SetVisibleExtentPercentage(math.max(shown, 1) / #rows) end
         if self.bar.SetPanExtentPercentage then self.bar:SetPanExtentPercentage(math.min(1, 3 / maxOffset)) end
         self.bar:SetScrollPercentage(self.offset / maxOffset,
             ScrollBoxConstants and ScrollBoxConstants.NoScrollInterpolation)

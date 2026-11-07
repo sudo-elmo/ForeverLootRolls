@@ -13,8 +13,6 @@ S.ATLAS = {
     inset = "common-insideframe",
     -- category plate of the character window (dark brown, ornate ends)
     header = "UI-Character-Info-Title",
-    expanded = "uitools-icon-chevron-down",
-    collapsed = "uitools-icon-chevron-right",
     line = "UI-Character-Info-Line-Bounce",
     hover = "charactercreate-customize-dropdown-linemouseover-middle",
     checkbox = "checkbox-minimal",
@@ -78,26 +76,22 @@ function S.AboveFrameArt(f, ...)
     f:HookScript("OnShow", Raise)
 end
 
--- Fold-in / fold-out marker: a slim gold chevron (down = open, right = folded
--- in), or the small classic +/- buttons where the client lacks the chevrons.
+-- Fold-in / fold-out marker: the slim + / - buttons (+ = folded in, - = open).
 function S.SetFoldIcon(tex, collapsed)
-    if S.Atlas(tex, collapsed and "collapsed" or "expanded") then
-        tex:SetVertexColor(1, 0.82, 0)
-        tex:SetTexCoord(0, 1, 0, 1)
-    else
-        tex:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-        tex:SetVertexColor(1, 1, 1)
-    end
+    tex:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+    tex:SetVertexColor(1, 1, 1)
 end
 
 -- Bottom bar for the window's buttons, between the list and the frame edge.
 -- No art of its own: the window's grey background shows. Its only job is to
 -- centre the buttons vertically. Returns the bar frame.
+-- It spans from the window's bottom edge (Forever's metal border hangs mostly
+-- below the frame) up to the list's frame at `top`.
 function S.Footer(f, top)
     local bar = CreateFrame("Frame", nil, f)
-    bar:SetPoint("BOTTOMLEFT", 6, 5)
-    bar:SetPoint("BOTTOMRIGHT", -4, 5)
-    bar:SetHeight(math.max(18, top - 5 - 2))
+    bar:SetPoint("BOTTOMLEFT", 6, 0)
+    bar:SetPoint("BOTTOMRIGHT", -4, 0)
+    bar:SetHeight(math.max(18, top - 1))
     return bar
 end
 

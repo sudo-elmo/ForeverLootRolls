@@ -74,7 +74,7 @@ local en = {
     allPassedShort = "all passed",
     clearTip = "Removes all finished rolls from the list. Rolls that are still running stay.",
     optClearOnInstance = "Clear on a new dungeon run",
-    optClearOnInstanceTip = "Empties the list when a new dungeon or raid run starts: a different dungeon, or a new copy of the same one after a reset (told apart by the instance ID of its creatures). A corpse run or /reload keeps the list.",
+    optClearOnInstanceTip = "Empties the list when a new dungeon or raid run starts: a different dungeon, the same one with another group, or after a \"has been reset\" message. A corpse run, a trip to town or /reload keeps the list.",
     demoStarted = "Demo started – the rolls are made up and only shown to you.",
 }
 
@@ -150,7 +150,7 @@ local de = {
     allPassedShort = "alle gepasst",
     clearTip = "Entfernt alle abgeschlossenen Würfe aus der Liste. Würfe, die noch laufen, bleiben.",
     optClearOnInstance = "Leeren bei neuem Dungeon-Durchlauf",
-    optClearOnInstanceTip = "Leert die Liste, wenn ein neuer Durchlauf beginnt: ein anderer Dungeon oder Schlachtzug, oder eine neue Kopie desselben nach einem Reset (erkannt an der Instanz-ID seiner Gegner). Nach einem Leichenlauf oder /reload bleibt sie erhalten.",
+    optClearOnInstanceTip = "Leert die Liste, wenn ein neuer Durchlauf beginnt: ein anderer Dungeon oder Schlachtzug, derselbe mit einer anderen Gruppe oder nach der Meldung „… wurde zurückgesetzt“. Nach einem Leichenlauf, einem Abstecher in die Stadt oder /reload bleibt sie erhalten.",
     demoStarted = "Demo gestartet – die Würfe sind ausgedacht und nur für dich sichtbar.",
 }
 

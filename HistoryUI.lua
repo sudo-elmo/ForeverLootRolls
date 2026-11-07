@@ -15,6 +15,7 @@ local FILTER_Y_NATIVE = -44  -- native: inside the list frame, below its top edg
 local BOTTOM = 40         -- delete button row
 local ROW_H = 22          -- item and player rows
 local GROUP_H = 32        -- group headers (native look)
+local ITEM_ICON_X = 50    -- item icon (after the time); player rows line up under it
 local SCROLLBAR_W = 14
 local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
 
@@ -200,7 +201,8 @@ local function FillRow(row, data)
         local p, e = data.player, data.entry
         row.time:SetText("")
         row.icon:ClearAllPoints()
-        row.icon:SetPoint("LEFT", 10, 0)
+        -- under the item icon, as in the roll window
+        row.icon:SetPoint("LEFT", ITEM_ICON_X + 1, 0)
         row.icon:SetSize(16, 16)
         row.icon:SetTexCoord(0, 1, 0, 1)
         row.icon:SetTexture(p.choice and CHOICE_TEX[p.choice] or QUESTION_TEX)
@@ -230,7 +232,7 @@ local function FillRow(row, data)
         local e = data.entry
         row.time:SetText(Date("%H:%M", e.ts))
         row.icon:ClearAllPoints()
-        row.icon:SetPoint("LEFT", 50, 0)
+        row.icon:SetPoint("LEFT", ITEM_ICON_X, 0)
         row.icon:SetSize(18, 18)
         row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
         row.icon:SetAlpha(1)

@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lua 5.1
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+
+      - name: Syntax check
+        run: for f in *.lua tests/*.lua; do luac5.1 -p "$f" || exit 1; done
+
+      - name: Parser and roll tracking test
+        run: lua5.1 tests/rolls_test.lua .
+
+      - name: Loot history test
+        run: lua5.1 tests/archive_test.lua .
+
+      - name: Window smoke test (stubbed WoW API)
+        run: lua5.1 tests/ui_smoke_test.lua .

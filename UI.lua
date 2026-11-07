@@ -236,14 +236,13 @@ local function CreateBlock()
         if not S.Atlas(block.headerBg, "header") then block.headerBg:SetColorTexture(1, 1, 1, 0.06) end
         -- + / - on the right, like reputation headers
         block.state = header:CreateTexture(nil, "ARTWORK")
-        block.state:SetSize(12, 12)
-        block.state:SetAlpha(0.8)
+        block.state:SetSize(11, 11)
         block.state:SetPoint("RIGHT", -14, 0)
     end
 
     local icon = header:CreateTexture(nil, "ARTWORK", nil, 1)
     icon:SetSize(ICON, ICON)
-    icon:SetPoint("LEFT", UI.native and 14 or 1, 0)   -- native: clear of the plate's ornate end
+    icon:SetPoint("LEFT", UI.native and 22 or 1, 0)   -- native: clear of the plate's ornate end
     block.icon = icon
     if UI.native then
         -- thin item border as on bag and loot buttons, tinted by quality
@@ -513,10 +512,7 @@ function UI:FillBlock(block, roll)
             block.headerBg:SetVertexColor(1, 1, 1)
             block.headerBg:SetAlpha(roll.done and 0.6 or 1)
         end
-        if not S.Atlas(block.state, self:IsCollapsed(roll) and "plus" or "minus") then
-            block.state:SetTexture(self:IsCollapsed(roll) and "Interface\\Buttons\\UI-PlusButton-Up"
-                or "Interface\\Buttons\\UI-MinusButton-Up")
-        end
+        S.SetFoldIcon(block.state, self:IsCollapsed(roll))
     end
     -- gold edge while the roll is open, grey once it is done,
     -- green with a green tint for items you won yourself
@@ -575,7 +571,7 @@ function UI:Create()
         -- the list headers bring their own frame: a bit wider, no extra
         -- card padding, rows closer together
         WIDTH, CARD, GAP = 300, 0, 4
-        ROW_H, ICON = 30, 22
+        ROW_H, ICON = 36, 24
         CONTENT_W = WIDTH - 2 * PAD
         INNER_W = CONTENT_W - 2 * CARD
     end

@@ -114,10 +114,10 @@ local function CreateRow(parent)
     -- group header: + / - (native: on the right like reputation headers,
     -- classic: on the left like the quest log)
     row.arrow = row:CreateTexture(nil, "ARTWORK")
-    row.arrow:SetSize(14, 14)
+    row.arrow:SetSize(H.native and 11 or 14, H.native and 11 or 14)
     row.arrow:SetPoint(H.native and "RIGHT" or "LEFT", H.native and -14 or 0, 0)
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    row.title:SetPoint("LEFT", H.native and 16 or 16, 0)
+    row.title:SetPoint("LEFT", H.native and 22 or 16, 0)
     row.title:SetJustifyH("LEFT")
     row.title:SetWordWrap(false)
     row.when = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -177,7 +177,9 @@ local function FillRow(row, data)
     row.winner:SetShown(not isGroup)
     if isGroup then
         local title, when = GroupTitle(data)
-        if not (H.native and S.Atlas(row.arrow, data.collapsed and "plus" or "minus")) then
+        if H.native then
+            S.SetFoldIcon(row.arrow, data.collapsed)
+        else
             row.arrow:SetTexture(data.collapsed and "Interface\\Buttons\\UI-PlusButton-Up"
                 or "Interface\\Buttons\\UI-MinusButton-Up")
         end

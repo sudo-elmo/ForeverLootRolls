@@ -13,8 +13,8 @@ S.ATLAS = {
     inset = "common-insideframe",
     -- category plate of the character window (dark brown, ornate ends)
     header = "UI-Character-Info-Title",
-    plus = "common-button-list-plus",
-    minus = "common-button-list-minus",
+    expanded = "uitools-icon-chevron-down",
+    collapsed = "uitools-icon-chevron-right",
     line = "UI-Character-Info-Line-Bounce",
     hover = "charactercreate-customize-dropdown-linemouseover-middle",
     checkbox = "checkbox-minimal",
@@ -76,6 +76,18 @@ function S.AboveFrameArt(f, ...)
     end
     Raise()
     f:HookScript("OnShow", Raise)
+end
+
+-- Fold-in / fold-out marker: a slim gold chevron (down = open, right = folded
+-- in), or the small classic +/- buttons where the client lacks the chevrons.
+function S.SetFoldIcon(tex, collapsed)
+    if S.Atlas(tex, collapsed and "collapsed" or "expanded") then
+        tex:SetVertexColor(1, 0.82, 0)
+        tex:SetTexCoord(0, 1, 0, 1)
+    else
+        tex:SetTexture(collapsed and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+        tex:SetVertexColor(1, 1, 1)
+    end
 end
 
 -- Bottom bar for the window's buttons, between the list and the frame edge,

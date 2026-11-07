@@ -560,14 +560,13 @@ function UI:Create()
     local f = S.Panel("ForeverLootRollsFrame", UIParent, L.title)
     self.native = f ~= nil
     if self.native then
-        -- the list headers bring their own frame: a bit wider, no extra
-        -- card padding, rows closer together
-        WIDTH, CARD, GAP = 320, 0, 4
+        -- the list headers bring their own frame: no extra card padding,
+        -- rows closer together
+        CARD, GAP = 0, 4
         INSET = 12
         ROW_H, ICON = 36, 24
-        CONTENT_W = WIDTH - 2 * PAD
-        INNER_W = CONTENT_W - 2 * INSET
     end
+    self:ApplyWidth(true)
     f = f or CreateFrame("Frame", "ForeverLootRollsFrame", UIParent, BACKDROP_TEMPLATE)
     f:SetSize(WIDTH, 40)
     -- same dialog frame as Forever Dice & Ale
@@ -895,6 +894,19 @@ function UI:Refresh()
         self.bar:Hide()
     end
     self:ScrollTo(self.scrollPos or 0)
+end
+
+-- Window width from the settings ("Window width", 240 - 600 px).
+function UI:ApplyWidth(noRefresh)
+    local w = math.floor(tonumber(Opt("windowWidth")) or 320)
+    WIDTH = math.max(240, math.min(600, w))
+    CONTENT_W = WIDTH - 2 * PAD
+    INNER_W = CONTENT_W - 2 * INSET
+    if self.frame then
+        self.frame:SetWidth(WIDTH)
+        if self.content then self.content:SetWidth(CONTENT_W) end
+    end
+    if not noRefresh then self:Refresh() end
 end
 
 function UI:Show(auto)

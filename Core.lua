@@ -21,6 +21,7 @@ ns.DEFAULTS = {
     archiveSize = 1000,
     historyMinQuality = 0,      -- loot history filter: 0 = all, 2 = from uncommon, ...
     maxHeight = 380,
+    windowWidth = 320,
     opacity = 100,              -- background opacity in percent
     clearOnNewInstance = true,
 }

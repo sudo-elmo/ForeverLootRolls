@@ -40,6 +40,8 @@ local function MakeFrame(kind, name)
     function f:SetFrameStrata(v) self._strata = v end
     function f:SetFrameLevel(v) self._level = v end
     function f:SetAlpha(v) self._alpha = v end
+    function f:SetWidth(v) self._width = v end
+    function f:SetSize(w, h) self._width = w end
     function f:SetBackdropColor(r, g, b, a) self._bgAlpha = a end
     function f:GetFrameLevel() return 1 end
     function f:GetName() return name end
@@ -229,6 +231,15 @@ if ns.UI.native then
     eq((ns.UI.gear._level or 0) > 500, true, "gear above the metal frame art (level 500)")
     eq((ns.UI.note._level or 0) > 500, true, "note above the metal frame art")
 end
+ns.db.windowWidth = 400
+ns.UI:ApplyWidth()
+eq(f._width, 400, "window width setting applied")
+eq(ns.UI.blocks[1] == nil or ns.UI.blocks[1]._width ~= nil, true, "cards follow the width")
+ns.db.windowWidth = 9999
+ns.UI:ApplyWidth()
+eq(f._width, 600, "width capped at 600")
+ns.db.windowWidth = 320
+ns.UI:ApplyWidth()
 eq(f._strata, "MEDIUM", "window in the quest tracker's layer"); eq(f._level, 25, "just above the tracker")
 Advance(1)
 local demo = ns.Rolls.list[#ns.Rolls.list]

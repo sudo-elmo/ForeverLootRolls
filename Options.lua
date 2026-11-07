@@ -22,6 +22,8 @@ local ROWS = {
     { "cycle", "collapseMode", L.optCollapse, L.optCollapseTip, Refresh, choices = COLLAPSE_CHOICES },
     { "step", "collapseDelay", L.optCollapseDelay, L.optCollapseDelayTip, nil, 1, 60, 1,
         parent = "collapseMode", active = function(db) return db.collapseMode == "delay" end },
+    { "step", "windowWidth", L.optWindowWidth, L.optWindowWidthTip,
+        function() if ns.UI then ns.UI:ApplyWidth() end end, 240, 600, 10 },
     { "step", "maxHeight", L.optMaxHeight, L.optMaxHeightTip, Refresh, 200, 800, 20 },
     { "step", "opacity", L.optOpacity, L.optOpacityTip,
         function()

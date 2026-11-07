@@ -21,7 +21,7 @@ ns.DEFAULTS = {
     archiveSize = 1000,
     historyMinQuality = 0,      -- loot history filter: 0 = all, 2 = from uncommon, ...
     maxHeight = 380,
-    opacity = 70,               -- background opacity in percent (100 = solid black)
+    opacity = 100,              -- background opacity in percent
     clearOnNewInstance = true,
 }
 
@@ -199,6 +199,12 @@ ev:SetScript("OnEvent", function(_, event, ...)
         if ForeverLootRollsDB.settingsVersion < 5 then
             if ForeverLootRollsDB.opacity == 100 then ForeverLootRollsDB.opacity = nil end
             ForeverLootRollsDB.settingsVersion = 5
+        end
+        -- the native Forever look is meant to be fully opaque: 70 (the previous
+        -- default) becomes the new default of 100
+        if ForeverLootRollsDB.settingsVersion < 6 then
+            if ForeverLootRollsDB.opacity == 70 then ForeverLootRollsDB.opacity = nil end
+            ForeverLootRollsDB.settingsVersion = 6
         end
         ApplyDefaults(ForeverLootRollsDB, ns.DEFAULTS)
         ns.db = ForeverLootRollsDB

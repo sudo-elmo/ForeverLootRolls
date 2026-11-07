@@ -749,7 +749,11 @@ function UI:Create()
     local clear = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     clear:SetSize(80, 20)
     if self.native then
-        clear:SetPoint("BOTTOMLEFT", 10, 7)
+        -- bottom bar under the list, button centred in it
+        local footer = S.Footer(f, PAD + FOOTER - 8)
+        clear:SetPoint("LEFT", footer, "LEFT", 6, 0)
+        clear:SetFrameLevel((footer:GetFrameLevel() or 1) + 2)
+        self.footer = footer
     else
         clear:SetPoint("BOTTOMLEFT", PAD - 1, PAD - 2)
     end
@@ -856,14 +860,14 @@ end
 -- Text, border and icons always stay fully visible.
 function UI:ApplyOpacity()
     local f = self.frame
-    local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 70) / 100))
+    local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 100) / 100))
     if self.native then
         if self.insetBg then self.insetBg:SetAlpha(a) end
         if type(f.Bg) == "table" and f.Bg.SetAlpha then f.Bg:SetAlpha(a) end
         return
     end
     if f and f.SetBackdropColor then
-        local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 70) / 100))
+        local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 100) / 100))
         f:SetBackdropColor(0, 0, 0, a)
     end
 end

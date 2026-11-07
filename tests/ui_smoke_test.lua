@@ -189,7 +189,7 @@ local fails = 0
 local function eq(a, b, msg) if a ~= b then fails = fails + 1 print("FAIL", msg, tostring(a), tostring(b)) end end
 
 -- stored by a test build: old default + old open/close settings
-ForeverLootRollsDB = { collapseMode = "newroll", opacity = 100, autoOpen = true, onlyInInstance = true,
+ForeverLootRollsDB = { collapseMode = "newroll", opacity = 70, autoOpen = true, onlyInInstance = true,
     autoClose = true, keepOpenInInstance = true, closeDelay = 12 }
 Fire("ADDON_LOADED", "ForeverLootRolls")
 eq(ns.db.collapseMode, "delay", "old stored default moves to the new default")
@@ -199,7 +199,7 @@ eq(ns.db.openOnEnterDungeon, false, "migrated to the new default: no open on ent
 eq(ns.db.dungeonAutoClose, true, "migrated to the new default: close in dungeons")
 eq(ns.db.worldCloseDelay, 12, "migrated: close delay")
 eq(ns.db.autoOpen, nil, "old key removed")
-eq(ns.db.opacity, 70, "old stored opacity default moves to 70")
+eq(ns.db.opacity, 100, "old stored opacity defaults move to 100")
 ns.db.worldAutoOpen = true
 Fire("PLAYER_LOGIN")
 eq(ns.db.worldAutoOpen, true, "defaults applied")
@@ -224,7 +224,7 @@ ns.db.opacity = 40
 ns.UI:Refresh()
 eq(BgAlpha(), 0.4, "lower opacity = see-through background")
 eq(rawget(f, "_alpha"), nil, "text and icons are not faded")
-ns.db.opacity = 70
+ns.db.opacity = 100
 if ns.UI.native then
     eq((ns.UI.gear._level or 0) > 500, true, "gear above the metal frame art (level 500)")
     eq((ns.UI.note._level or 0) > 500, true, "note above the metal frame art")

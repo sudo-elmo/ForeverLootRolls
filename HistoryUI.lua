@@ -334,7 +334,7 @@ function H:Create()
     end
 
     self.count = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.count:SetPoint("BOTTOMRIGHT", -PAD - 2, 20)
+    self.count:SetPoint("BOTTOMRIGHT", -PAD - 2, 20)   -- re-anchored to the bottom bar (native)
     self.count:SetTextColor(0.7, 0.7, 0.7)
 
     -- list area
@@ -401,7 +401,18 @@ function H:Create()
 
     local clear = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     clear:SetSize(130, 22)
-    clear:SetPoint("BOTTOMLEFT", PAD - 2, 14)
+    if self.native then
+        -- bottom bar under the list: button left, item count right, both centred
+        local footer = S.Footer(f, BOTTOM - 6)
+        clear:SetPoint("LEFT", footer, "LEFT", 6, 0)
+        clear:SetFrameLevel((footer:GetFrameLevel() or 1) + 2)
+        self.count:SetParent(footer)
+        self.count:ClearAllPoints()
+        self.count:SetPoint("RIGHT", footer, "RIGHT", -10, 0)
+        self.footer = footer
+    else
+        clear:SetPoint("BOTTOMLEFT", PAD - 2, 14)
+    end
     clear:SetText(L.historyClear)
     clear:SetScript("OnClick", function()
         if StaticPopup_Show then StaticPopup_Show("FOREVERLOOTROLLS_CLEAR_HISTORY") end
@@ -457,16 +468,16 @@ function H:ApplyOpacity()
     local f = self.frame
     if self.native then
         local v = ns.db and ns.db.opacity
-        if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 70 end
-        local a = math.max(0, math.min(1, (tonumber(v) or 70) / 100))
+        if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 100 end
+        local a = math.max(0, math.min(1, (tonumber(v) or 100) / 100))
         if self.insetBg then self.insetBg:SetAlpha(a) end
         if type(f.Bg) == "table" and f.Bg.SetAlpha then f.Bg:SetAlpha(a) end
         return
     end
     if f and f.SetBackdropColor then
         local v = ns.db and ns.db.opacity
-        if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 70 end
-        f:SetBackdropColor(0, 0, 0, math.max(0, math.min(1, (tonumber(v) or 70) / 100)))
+        if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 100 end
+        f:SetBackdropColor(0, 0, 0, math.max(0, math.min(1, (tonumber(v) or 100) / 100)))
     end
 end
 

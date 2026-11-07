@@ -44,7 +44,7 @@ Options → AddOns → Forever Loot Rolls, or the gear in the window:
 - Close with Escape
 - Need / Greed / Pass buttons in the window
 - Clear the list when entering a new dungeon
-- Background opacity (100 % = solid black)
+- Background opacity (default 100 %)
 - Maximum window height (longer lists scroll)
 - How many rolls the list keeps
 - How many items the loot history keeps (default 1000, up to 5000)

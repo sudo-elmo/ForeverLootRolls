@@ -77,6 +77,23 @@ function S.AboveFrameArt(f, ...)
     f:HookScript("OnShow", Raise)
 end
 
+-- Bottom bar for the window's buttons, between the list and the frame edge,
+-- on the character window's title plate. Returns the bar frame.
+function S.Footer(f, top)
+    local bar = CreateFrame("Frame", nil, f)
+    bar:SetPoint("BOTTOMLEFT", 6, 5)
+    bar:SetPoint("BOTTOMRIGHT", -4, 5)
+    bar:SetHeight(math.max(18, top - 5 - 2))
+    local bg = bar:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    if S.Atlas(bg, "UI-Character-Info-Title") then
+        bg:SetAlpha(0.9)
+    else
+        bg:SetColorTexture(0, 0, 0, 0.5)
+    end
+    return bar
+end
+
 -- Dark character pane background with the thin inside frame, between the
 -- given offsets from the panel edges. Returns the background texture.
 function S.Inset(parent, left, top, right, bottom)

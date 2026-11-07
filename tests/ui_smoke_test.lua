@@ -225,6 +225,10 @@ ns.UI:Refresh()
 eq(BgAlpha(), 0.4, "lower opacity = see-through background")
 eq(rawget(f, "_alpha"), nil, "text and icons are not faded")
 ns.db.opacity = 70
+if ns.UI.native then
+    eq((ns.UI.gear._level or 0) > 500, true, "gear above the metal frame art (level 500)")
+    eq((ns.UI.note._level or 0) > 500, true, "note above the metal frame art")
+end
 eq(f._strata, "MEDIUM", "window in the quest tracker's layer"); eq(f._level, 25, "just above the tracker")
 Advance(1)
 local demo = ns.Rolls.list[#ns.Rolls.list]

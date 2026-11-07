@@ -53,12 +53,28 @@ function S.Panel(name, parent, title)
         close:SetPoint("TOPRIGHT", 2, 1)
     end
     f.CloseButton = close
-    -- keep the X above the metal frame art of the title bar
-    if close.SetFrameLevel then close:SetFrameLevel((f:GetFrameLevel() or 1) + 20) end
-    f:HookScript("OnShow", function()
-        if close.SetFrameLevel then close:SetFrameLevel((f:GetFrameLevel() or 1) + 20) end
-    end)
+    S.AboveFrameArt(f, close)
     return f
+end
+
+-- The metal frame art (NineSlice) sits on frame level 500 of its own. Buttons
+-- in the title bar must be above it, or the frame covers them.
+function S.FrameArtLevel(f)
+    local art = f.NineSlice
+    local level = (type(art) == "table" and art.GetFrameLevel and art:GetFrameLevel()) or 500
+    return math.max(tonumber(level) or 500, (f:GetFrameLevel() or 1)) + 10
+end
+
+function S.AboveFrameArt(f, ...)
+    local buttons = { ... }
+    local function Raise()
+        local level = S.FrameArtLevel(f)
+        for _, b in ipairs(buttons) do
+            if b and b.SetFrameLevel then b:SetFrameLevel(level) end
+        end
+    end
+    Raise()
+    f:HookScript("OnShow", Raise)
 end
 
 -- Dark character pane background with the thin inside frame, between the

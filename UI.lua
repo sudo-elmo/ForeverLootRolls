@@ -248,7 +248,7 @@ local function CreateBlock()
     if UI.native then
         -- thin item border as on bag and loot buttons, tinted by quality
         icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-        icon:SetSize(ICON - 4, ICON - 4)
+        icon:SetSize(ICON - 2, ICON - 2)
         local border = header:CreateTexture(nil, "OVERLAY")
         border:SetTexture("Interface\\Common\\WhiteIconFrame")
         border:SetAllPoints(icon)
@@ -575,6 +575,7 @@ function UI:Create()
         -- the list headers bring their own frame: a bit wider, no extra
         -- card padding, rows closer together
         WIDTH, CARD, GAP = 300, 0, 4
+        ROW_H, ICON = 26, 22
         CONTENT_W = WIDTH - 2 * PAD
         INNER_W = CONTENT_W - 2 * CARD
     end
@@ -688,15 +689,7 @@ function UI:Create()
     self.note = note
     if self.native then
         -- above the metal frame art, or the title bar would cover them
-        -- (again after the window got its layer, see UI.ApplyLayer)
-        local function Raise()
-            local level = (f:GetFrameLevel() or 1) + 20
-            for _, b in ipairs({ close, gear, note }) do
-                if b and b.SetFrameLevel then b:SetFrameLevel(level) end
-            end
-        end
-        Raise()
-        f:HookScript("OnShow", Raise)
+        S.AboveFrameArt(f, close, gear, note)
     end
 
     local scroll = CreateFrame("ScrollFrame", nil, f)

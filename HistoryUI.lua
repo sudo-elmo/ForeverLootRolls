@@ -9,7 +9,9 @@ ns.HistoryUI = H
 
 local WIDTH, HEIGHT = 380, 460
 local PAD = 16
-local TOP = 52            -- banner + filter row
+local TOP = 52            -- banner + filter row (native: see FILTER_Y)
+local FILTER_Y = -36      -- centre of the filter row (classic)
+local FILTER_Y_NATIVE = -44  -- native: inside the list frame, below its top edge
 local BOTTOM = 40         -- delete button row
 local ROW_H = 22          -- item and player rows
 local GROUP_H = 32        -- group headers (native look)
@@ -285,7 +287,9 @@ function H:Create()
     -- filter: only my wins (native: the minimal checkbox from the reputation pane)
     local mine = (self.native and S.CheckButton(f)) or CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
     mine:SetSize(24, 24)
-    mine:SetPoint("TOPLEFT", PAD - 4, -24)
+    local filterY = self.native and FILTER_Y_NATIVE or FILTER_Y
+    if self.native then TOP = 64 end
+    mine:SetPoint("LEFT", f, "TOPLEFT", PAD - 4, filterY)
     local mineText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     mineText:SetPoint("LEFT", mine, "RIGHT", 2, 0)
     mineText:SetText(L.onlyMine)
@@ -305,7 +309,7 @@ function H:Create()
     local ok, dropdown = pcall(CreateFrame, "DropdownButton", nil, f, "WowStyle1DropdownTemplate")
     if ok and dropdown and dropdown.SetupMenu then
         dropdown:SetWidth(150)
-        dropdown:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+        dropdown:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, filterY)
         dropdown:SetupMenu(function(_, root)
             for _, q in ipairs(H.QUALITY_STEPS) do
                 root:CreateRadio(H.QualityLabel(q),
@@ -317,7 +321,7 @@ function H:Create()
     else
         local quality = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
         quality:SetSize(130, 20)
-        quality:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+        quality:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, filterY)
         quality:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         quality:SetScript("OnClick", function(_, mouse)
             local idx = 1

@@ -306,32 +306,44 @@ Fire("PLAYER_ENTERING_WORLD")
 eq(#ns.Rolls.list, 1, "option off keeps the list")
 ns.db.clearOnNewInstance = true
 
--- the same dungeon again: corpse run keeps the list, a new run clears it
-local ghost = false
-UnitIsDeadOrGhost = function() return ghost end
+-- the same dungeon again: the creatures' zone UID tells the copies apart
+local guid
+UnitGUID = function() return guid end
 local function OneFinishedRoll(id)
     Fire("START_LOOT_ROLL", id, 60000)
     Fire("CHAT_MSG_LOOT", "Everyone passed on: " .. link)
 end
+local function Mob(zoneUID) return ("Creature-0-4372-%d-%s-3671-000ABCDEF0"):format(instanceID, zoneUID) end
+eq(ns.ParseCreatureGUID("Creature-0-4372-43-1234-3671-000ABCDEF0"), 43, "map ID from a creature GUID")
+eq(select(2, ns.ParseCreatureGUID("Creature-0-4372-43-1234-3671-000ABCDEF0")), "1234", "zone UID from a creature GUID")
+eq(ns.ParseCreatureGUID("Player-4372-0ABCDEF0"), nil, "players carry no zone UID")
+
+instanceID = 43
 inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
+guid = Mob("1111"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate1")
 OneFinishedRoll(80)
 local n0 = #ns.Rolls.list
-ghost = true; inDungeon = false; Fire("PLAYER_ENTERING_WORLD")     -- died, released outside
-inDungeon = true; Fire("PLAYER_ENTERING_WORLD")                    -- corpse run back in
-eq(#ns.Rolls.list, n0, "corpse run into the same dungeon keeps the list")
-ghost = false
+eq(n0 > 0, true, "rolls in the first run")
+inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- died / left
+inDungeon = true; Fire("PLAYER_ENTERING_WORLD")                    -- back in
+guid = Mob("1111"); Fire("PLAYER_TARGET_CHANGED")                  -- same copy (corpse run)
+eq(#ns.Rolls.list, n0, "same zone UID (corpse run) keeps the list")
 Fire("PLAYER_ENTERING_WORLD")                                      -- /reload inside
+guid = Mob("1111"); Fire("UPDATE_MOUSEOVER_UNIT")
 eq(#ns.Rolls.list, n0, "/reload inside keeps the list")
-inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- left alive (reset run)
+inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- out, reset
 inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
-eq(#ns.Rolls.list, 0, "same dungeon after leaving alive = new run, list cleared")
+guid = "Player-4372-0ABCDEF0"; Fire("PLAYER_TARGET_CHANGED")       -- a player says nothing
+eq(#ns.Rolls.list, n0, "players do not decide anything")
+guid = Mob("2222"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate2")    -- new copy
+eq(#ns.Rolls.list, 0, "new zone UID (reset) = new run, list cleared")
 OneFinishedRoll(81)
-INSTANCE_RESET_SUCCESS = "%s has been reset."
-ghost = true; inDungeon = false; Fire("PLAYER_ENTERING_WORLD")
-Fire("CHAT_MSG_SYSTEM", "Wailing Caverns has been reset.")
+guid = Mob("3333"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate3")    -- later units are not checked again
+eq(#ns.Rolls.list, 1, "decided once per entry")
+instanceID = 36
 inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
-eq(#ns.Rolls.list, 0, "reset message = new run, even after a ghost exit")
-ghost = false
+eq(#ns.Rolls.list, 0, "a different dungeon clears right away")
+guid = nil
 -- long list gets a scroll bar instead of a taller window
 ns.db.collapseMode = "never"
 for id = 40, 47 do

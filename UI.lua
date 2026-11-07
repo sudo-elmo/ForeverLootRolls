@@ -299,11 +299,17 @@ function UI:UpdateBlockLive(block)
     local roll = block.roll
     if not roll then return end
     local left = Remaining(roll)
+    local showBar = not roll.done and left > 0
 
+    -- with the time bar the name sits above it; without it (finished items)
+    -- the name is centred on the icon
+    local y = showBar and 5 or 0
+    block.item:ClearAllPoints()
+    block.item:SetPoint("LEFT", block.icon, "RIGHT", 8, y)
     if block.winner:IsShown() then
-        block.item:SetPoint("RIGHT", block.winner, "LEFT", -6, 2)
+        block.item:SetPoint("RIGHT", block.winner, "LEFT", -6, y)
     else
-        block.item:SetPoint("RIGHT", 0, 2)
+        block.item:SetPoint("RIGHT", 0, y)
     end
     block.bar:SetPoint("RIGHT", -1, 0)
 
@@ -312,13 +318,13 @@ function UI:UpdateBlockLive(block)
         block.btnRow:Hide()
     end
 
-    if roll.done or left <= 0 then
-        block.bar:Hide()
-    else
+    if showBar then
         local frac = math.min(1, left / (roll.duration or 60))
         block.bar:SetValue(frac)
         block.bar:SetStatusBarColor(1 - frac * 0.6, 0.3 + 0.6 * frac, 0.1, 0.9)
         block.bar:Show()
+    else
+        block.bar:Hide()
     end
 end
 

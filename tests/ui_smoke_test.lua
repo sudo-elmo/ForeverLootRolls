@@ -349,6 +349,8 @@ eq(#ns.Rolls.list, n0, "players do not decide anything")
 guid = Mob("2222"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate2")    -- new copy
 eq(#ns.Rolls.list, 0, "new zone UID (reset) = new run, list cleared")
 OneFinishedRoll(81)
+eq(ns.Rolls:Get(81).run, "43:2222", "roll knows its dungeon run")
+eq(ForeverLootRollsCharDB.archive[#ForeverLootRollsCharDB.archive].run, "43:2222", "history entry knows its run")
 guid = Mob("3333"); Fire("NAME_PLATE_UNIT_ADDED", "nameplate3")    -- later units are not checked again
 eq(#ns.Rolls.list, 1, "decided once per entry")
 instanceID = 36

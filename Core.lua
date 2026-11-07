@@ -153,6 +153,14 @@ function ns.OnDungeonChange(dungeon)
     ns.watchRun = instanceID
 end
 
+-- The current dungeon run ("<map ID>:<zone UID>"), nil outside or while unknown.
+function ns.GetRun()
+    local db = ns.charDB
+    if db and db.inDungeon and db.lastZoneUID and not ns.watchRun then
+        return tostring(db.lastInstance) .. ":" .. db.lastZoneUID
+    end
+end
+
 -- Called for nameplates, the target and the mouseover unit while in a dungeon.
 function ns.SeeUnit(unit)
     local instanceID = ns.watchRun

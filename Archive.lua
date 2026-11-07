@@ -46,6 +46,7 @@ function A:Record(roll)
     e.quality = roll.quality or A.QualityOf(e)
     e.ts = roll.ts
     e.zone, e.zoneType = roll.zone, roll.zoneType
+    e.run = roll.run
     e.result, e.winner = roll.result, roll.winner
     local players = {}
     for _, name in ipairs(roll.playerOrder) do
@@ -107,11 +108,19 @@ function A:Rows(onlyMine, minQuality)
         local e = list[i]
         local zone = e.zone or "?"
         local ts = e.ts or 0
-        local newRun = not group or group.zone ~= zone
-            or (prevTs and prevTs - ts > A.RUN_GAP)
+        -- one group per visit: per dungeon run where the run is known (instance
+        -- ID from creature GUIDs), else per place without a long pause
+        local newRun
+        if not group or group.zone ~= zone then
+            newRun = true
+        elseif e.run or group.run then
+            newRun = e.run ~= group.run
+        else
+            newRun = prevTs and prevTs - ts > A.RUN_GAP
+        end
         if newRun then
             Close()
-            group = { kind = "group", zone = zone, zoneType = e.zoneType, from = ts, to = ts, count = 0 }
+            group = { kind = "group", zone = zone, zoneType = e.zoneType, run = e.run, from = ts, to = ts, count = 0 }
             rows[#rows + 1] = group
         end
         group.from = ts

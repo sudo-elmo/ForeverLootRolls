@@ -70,6 +70,22 @@ for _, r in ipairs(rows) do
 end
 eq(items, 2, "two of my wins"); eq(groups, 2, "empty groups dropped by the filter")
 
+-- dungeon runs: the same dungeon twice in a row = two groups; one run with a
+-- long break = one group
+do
+    local list = {}
+    local A2 = setmetatable({ list = list, collapsed = {}, expanded = {}, listeners = {} }, { __index = A })
+    local function E(ts, run) return { link = "|cnIQ2:|Hitem:1::::|h[X]|h|r", ts = ts, zone = "Höhlen des Wehklagens",
+        zoneType = "party", run = run, result = "allpassed", players = {} } end
+    list[1] = E(1000, "43:1111"); list[2] = E(1100, "43:1111")
+    list[3] = E(1200, "43:2222"); list[4] = E(1200 + A.RUN_GAP + 500, "43:2222")
+    local groups = {}
+    for _, r in ipairs(A2:Rows(false)) do if r.kind == "group" then groups[#groups + 1] = r end end
+    eq(#groups, 2, "two runs of the same dungeon = two groups")
+    eq(groups[1].count, 2, "one run with a long break stays one group")
+    eq(groups[2].count, 2, "first run")
+end
+
 -- quality filter: the drops are green (|cnIQ2), so "from rare" hides them all
 eq(A.QualityOf(saved[1]), 2, "quality read from the link")
 eq(A.QualityOf({ link = "|cffa335ee|Hitem:1::::|h[Epic]|h|r" }), 4, "quality from an old-style colour")

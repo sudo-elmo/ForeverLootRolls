@@ -81,6 +81,8 @@ local function NewRoll(self, fields)
     for k, v in pairs(fields) do roll[k] = v end
     roll.key = roll.key or R.ItemKey(roll.link)
     if ns.GetZone and not roll.zone then roll.zone, roll.zoneType = ns.GetZone() end
+    -- which copy of the dungeon (instance run), if known
+    if ns.GetRun and not roll.run then roll.run = ns.GetRun() end
     self.list[#self.list + 1] = roll
     if roll.id ~= nil then self.byId[roll.id] = roll end
     self:Trim()

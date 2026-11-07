@@ -11,7 +11,8 @@ ns.Skin = S
 S.ATLAS = {
     panelBg = "UI-Character-Info-General-BG",
     inset = "common-insideframe",
-    header = "common-button-list-collapseExpand",
+    -- category plate of the character window (dark brown, ornate ends)
+    header = "UI-Character-Info-Title",
     plus = "common-button-list-plus",
     minus = "common-button-list-minus",
     line = "UI-Character-Info-Line-Bounce",

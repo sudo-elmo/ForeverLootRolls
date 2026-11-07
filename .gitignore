@@ -3,4 +3,4 @@ dist/
 *.zip
 .DS_Store
 Thumbs.db
-Screenshot_*.png
+*.png

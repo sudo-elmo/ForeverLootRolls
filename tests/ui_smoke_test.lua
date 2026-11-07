@@ -304,6 +304,34 @@ instanceID = 200
 ns.db.clearOnNewInstance = false
 Fire("PLAYER_ENTERING_WORLD")
 eq(#ns.Rolls.list, 1, "option off keeps the list")
+ns.db.clearOnNewInstance = true
+
+-- the same dungeon again: corpse run keeps the list, a new run clears it
+local ghost = false
+UnitIsDeadOrGhost = function() return ghost end
+local function OneFinishedRoll(id)
+    Fire("START_LOOT_ROLL", id, 60000)
+    Fire("CHAT_MSG_LOOT", "Everyone passed on: " .. link)
+end
+inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
+OneFinishedRoll(80)
+local n0 = #ns.Rolls.list
+ghost = true; inDungeon = false; Fire("PLAYER_ENTERING_WORLD")     -- died, released outside
+inDungeon = true; Fire("PLAYER_ENTERING_WORLD")                    -- corpse run back in
+eq(#ns.Rolls.list, n0, "corpse run into the same dungeon keeps the list")
+ghost = false
+Fire("PLAYER_ENTERING_WORLD")                                      -- /reload inside
+eq(#ns.Rolls.list, n0, "/reload inside keeps the list")
+inDungeon = false; Fire("PLAYER_ENTERING_WORLD")                   -- left alive (reset run)
+inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
+eq(#ns.Rolls.list, 0, "same dungeon after leaving alive = new run, list cleared")
+OneFinishedRoll(81)
+INSTANCE_RESET_SUCCESS = "%s has been reset."
+ghost = true; inDungeon = false; Fire("PLAYER_ENTERING_WORLD")
+Fire("CHAT_MSG_SYSTEM", "Wailing Caverns has been reset.")
+inDungeon = true; Fire("PLAYER_ENTERING_WORLD")
+eq(#ns.Rolls.list, 0, "reset message = new run, even after a ghost exit")
+ghost = false
 -- long list gets a scroll bar instead of a taller window
 ns.db.collapseMode = "never"
 for id = 40, 47 do

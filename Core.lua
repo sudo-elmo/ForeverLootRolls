@@ -113,6 +113,44 @@ local function HideBlizzardRollFrame(id)
     end
 end
 
+-- ---------------------------------------------------------------- new dungeon run
+
+-- A new run starts the list fresh (setting "clear when entering a new dungeon").
+-- The game does not tell whether a normal dungeon is a new run, so:
+--   * a different dungeon or raid                    -> new run
+--   * the same one after leaving it alive            -> new run (it was reset)
+--   * the same one after a reset message             -> new run
+--   * the same one as a ghost (corpse run), /reload  -> same run
+function ns.IsResetMessage(msg)
+    local fmt = INSTANCE_RESET_SUCCESS
+    if type(fmt) ~= "string" then return false end
+    -- escape the text (including "%"), then turn the escaped "%s" into a wildcard
+    local escaped = fmt:gsub("[%%%^%$%(%)%.%[%]%*%+%-%?]", "%%%0")
+    local pattern = "^" .. escaped:gsub("%%%%%d?%$?s", ".+") .. "$"
+    return msg:match(pattern) ~= nil
+end
+
+function ns.OnDungeonChange(dungeon)
+    local db = ns.charDB
+    if not db then return end
+    if not dungeon then
+        if db.inDungeon then
+            -- just left a dungeon: alive = probably a reset run follows, ghost = corpse run
+            db.leftAlive = not (UnitIsDeadOrGhost and UnitIsDeadOrGhost("player"))
+        end
+        db.inDungeon = false
+        return
+    end
+    local instanceID = GetInstanceInfo and select(8, GetInstanceInfo())
+    local cameBack = not db.inDungeon
+    local newRun = (instanceID and instanceID ~= db.lastInstance)
+        or (cameBack and (db.leftAlive or db.resetSeen))
+    db.inDungeon = true
+    db.lastInstance = instanceID or db.lastInstance
+    db.leftAlive, db.resetSeen = nil, nil
+    if newRun and ns.db and ns.db.clearOnNewInstance then R:ClearFinished() end
+end
+
 local HISTORY_VERSION = 2
 
 local function SaveHistory()
@@ -161,6 +199,7 @@ ev:RegisterEvent("PLAYER_ENTERING_WORLD")
 ev:RegisterEvent("START_LOOT_ROLL")
 ev:RegisterEvent("CANCEL_LOOT_ROLL")
 ev:RegisterEvent("CHAT_MSG_LOOT")
+ev:RegisterEvent("CHAT_MSG_SYSTEM")
 ev:SetScript("OnEvent", function(_, event, ...)
     if event == "ADDON_LOADED" then
         if ... ~= ADDON then return end
@@ -223,16 +262,12 @@ ev:SetScript("OnEvent", function(_, event, ...)
         P.Build()
     elseif event == "PLAYER_ENTERING_WORLD" then
         local dungeon = ns.InDungeon()
-        -- Entering a different dungeon or raid starts a new list. Going back
-        -- into the same one (corpse run, /reload, loading screens) keeps it.
-        if dungeon and GetInstanceInfo then
-            local instanceID = select(8, GetInstanceInfo())
-            if instanceID and instanceID ~= ns.charDB.lastInstance then
-                ns.charDB.lastInstance = instanceID
-                if ns.db.clearOnNewInstance then R:ClearFinished() end
-            end
-        end
+        ns.OnDungeonChange(dungeon)
         UI:OnZoneChanged(dungeon)
+    elseif event == "CHAT_MSG_SYSTEM" then
+        -- "<dungeon> has been reset." -> the next entry is a new run
+        local msg = ...
+        if ns.charDB and type(msg) == "string" and ns.IsResetMessage(msg) then ns.charDB.resetSeen = true end
     elseif event == "PLAYER_LOGOUT" then
         SaveHistory()
     elseif event == "START_LOOT_ROLL" then

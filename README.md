@@ -16,7 +16,7 @@ As soon as your group has to roll on an item, the window opens and shows live wh
 - Big Need / Greed / Pass buttons right under the item while you still have to roll (can be turned off)
 - Closes a few seconds after the last roll is done; stays open while your mouse is over it
 - Finished rolls stay in the list per character (also after `/reload`); the Clear button empties it
-- The list starts fresh when you enter a different dungeon or raid (can be turned off)
+- The list starts fresh with every new dungeon or raid run: a different dungeon, or the same one after you left it alive or it was reset (a corpse run or /reload keeps it; can be turned off)
 - **Loot history** (note button, top left): every item ever rolled on, newest first, grouped by dungeon, raid or zone visit, with time, winner and roll. Kept when you clear the list or change dungeons. Filters: "only my wins" and item quality (e.g. from rare, to hide green items).
 - Shift-click an item to link it in chat, Ctrl-click to try it on
 - English and German (follows your game language); the chat messages are read in every game language
@@ -43,7 +43,7 @@ Options → AddOns → Forever Loot Rolls, or the gear in the window:
 - Two sections, set separately: **Dungeons and raids** (open when entering – off by default, open when a roll starts, close when everyone has rolled + seconds) and **Open world** (open when a roll starts, close when everyone has rolled + seconds)
 - Close with Escape
 - Need / Greed / Pass buttons in the window
-- Clear the list when entering a new dungeon
+- Clear the list on a new dungeon run
 - Background opacity (default 100 %)
 - Maximum window height (longer lists scroll)
 - How many rolls the list keeps

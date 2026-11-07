@@ -188,18 +188,20 @@ local function FillRow(row, data)
         end
         row.title:SetText(title .. " |cffbbbbbb(" .. data.count .. ")|r")
         row.when:SetText(when)
+        row.bg:SetAlpha(1)
         if row.headerBg then
             row.bg:SetColorTexture(0, 0, 0, 0)
         else
             row.bg:SetColorTexture(1, 0.82, 0, 0.12)
         end
     elseif data.kind == "player" then
-        -- one player's roll under an opened item
+        -- one player's roll under an opened item, laid out like the player
+        -- lines in the roll window: choice icon, name, roll, check for the winner
         local p, e = data.player, data.entry
         row.time:SetText("")
         row.icon:ClearAllPoints()
-        row.icon:SetPoint("LEFT", 72, 0)
-        row.icon:SetSize(14, 14)
+        row.icon:SetPoint("LEFT", 10, 0)
+        row.icon:SetSize(16, 16)
         row.icon:SetTexCoord(0, 1, 0, 1)
         row.icon:SetTexture(p.choice and CHOICE_TEX[p.choice] or QUESTION_TEX)
         row.icon:SetAlpha(p.choice == "pass" and 0.6 or 1)
@@ -210,14 +212,19 @@ local function FillRow(row, data)
             local c = p.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[p.class]
             if c then row.item:SetTextColor(c.r, c.g, c.b) else row.item:SetTextColor(0.9, 0.9, 0.9) end
         end
-        local right = "|cff999999" .. (p.choice and L[p.choice] or "–") .. "|r"
-        if p.roll then right = right .. (p.winner and "  |cff33ff33" or "  |cffffd100") .. p.roll .. "|r" end
-        if p.winner then right = right .. " |TInterface\\RaidFrame\\ReadyCheck-Ready:14:14|t" end
+        local right = p.roll and ((p.winner and "|cff33ff33" or "|cffcccccc") .. p.roll .. "|r") or ""
+        if p.winner then right = right .. " |TInterface\\RaidFrame\\ReadyCheck-Ready:15:15|t" end
         row.winner:SetText(right)
+        -- every other line on the striped row background
         if A.IsMine(e) and p.winner then
             row.bg:SetColorTexture(0.1, 0.6, 0.1, 0.18)
-        elseif not (H.native and S.Atlas(row.bg, "line")) then
-            row.bg:SetColorTexture(0, 0, 0, 0.3)
+            row.bg:SetAlpha(1)
+        elseif (data.index or 1) % 2 == 1 then
+            if not (H.native and S.Atlas(row.bg, "line")) then row.bg:SetColorTexture(1, 1, 1, 0.05) end
+            row.bg:SetAlpha(H.native and 0.7 or 1)
+        else
+            row.bg:SetColorTexture(0, 0, 0, 0)
+            row.bg:SetAlpha(1)
         end
     else
         local e = data.entry
@@ -231,6 +238,7 @@ local function FillRow(row, data)
         row.item:SetText(ns.Rolls.ItemName(e.link) or "?")
         row.item:SetTextColor(QualityColor(e))
         row.winner:SetText(WinnerText(e))
+        row.bg:SetAlpha(1)
         if A.IsMine(e) then
             row.bg:SetColorTexture(0.1, 0.6, 0.1, 0.18)
         else
@@ -435,8 +443,11 @@ function H:ScrollBy(n)
     self:Draw()
 end
 
+local LINE_H = 19         -- player rows, as in the roll window
+
 function H:RowHeight(data)
     if data and data.kind == "group" and self.native then return GROUP_H end
+    if data and data.kind == "player" then return LINE_H end
     return ROW_H
 end
 

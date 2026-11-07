@@ -124,8 +124,8 @@ function A:Rows(onlyMine, minQuality)
             if not self.collapsed[group.id] then
                 rows[#rows + 1] = { kind = "item", entry = e, expanded = self.expanded[e] and true or false }
                 if self.expanded[e] then
-                    for _, p in ipairs(A.SortedPlayers(e)) do
-                        rows[#rows + 1] = { kind = "player", entry = e, player = p }
+                    for i, p in ipairs(A.SortedPlayers(e)) do
+                        rows[#rows + 1] = { kind = "player", entry = e, player = p, index = i }
                     end
                 end
             end

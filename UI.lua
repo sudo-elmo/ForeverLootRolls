@@ -14,12 +14,13 @@ local CARD = 6             -- padding inside each item card
 local INNER_W = CONTENT_W - 2 * CARD
 local ROW_H = 32           -- item line
 local ICON = 30
+local BTN = 30             -- classic Need / Greed / Pass icon buttons
+local BTN_SPACING = 14
 local LINE_H = 19          -- player line
 local LINE_X = 10
-local BTN_ROW = 30         -- row with the Need / Greed / Pass buttons
-local BTN_GAP = 4
+local BTN_ROW = 32         -- row with the Need / Greed / Pass buttons
 local GAP = 8
-local SCROLLBAR_W = 8
+local SCROLLBAR_W = 14
 local SCROLLBAR_GAP = 4
 local TITLE_SPACE = 16     -- room under the title banner and the close button
 local FOOTER = 26          -- row with the clear button
@@ -84,6 +85,8 @@ local function AcquireLine(parent)
     if not line then
         line = CreateFrame("Frame")
         line:SetHeight(LINE_H)
+        line.stripe = line:CreateTexture(nil, "BACKGROUND")
+        line.stripe:SetAllPoints()
         line.icon = line:CreateTexture(nil, "ARTWORK")
         line.icon:SetSize(16, 16)
         line.icon:SetPoint("LEFT", LINE_X, 0)
@@ -115,7 +118,9 @@ local function ReleaseLines(block)
     end
 end
 
-local function FillLine(line, p, roll)
+local function FillLine(line, p, roll, index)
+    -- every other line slightly lighter, like classic lists
+    line.stripe:SetColorTexture(1, 1, 1, (index % 2 == 0) and 0.05 or 0)
     line.icon:SetTexture(p.choice and CHOICE_TEX[p.choice] or (roll.done and QUESTION_TEX or WAIT_TEX))
     line.name:SetText(p.name)
     if p.choice == "pass" or (roll.done and not p.choice) then
@@ -139,25 +144,14 @@ end
 
 local blockPool = {}
 
--- A wide button with the dice / coin / pass icon and its name.
+-- The dice / coin / pass button exactly like on Blizzard's classic roll frame.
 local function RollButton(block, def)
     local b = CreateFrame("Button", nil, block.btnRow)
-    b:SetHeight(BTN_ROW - 4)
-    b.bg = b:CreateTexture(nil, "BACKGROUND")
-    b.bg:SetAllPoints()
-    b.bg:SetColorTexture(1, 1, 1, 0.08)
-    local hl = b:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    hl:SetColorTexture(1, 0.85, 0.3, 0.25)
-    b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetSize(BTN_ROW - 6, BTN_ROW - 6)
-    b.icon:SetPoint("CENTER")
-    b.icon:SetTexture(def.tex .. "-Up")
+    b:SetSize(BTN, BTN)
+    b:SetNormalTexture(def.tex .. "-Up")
+    b:SetPushedTexture(def.tex .. "-Down")
+    b:SetHighlightTexture(def.tex .. "-Highlight", "ADD")
     b.def = def
-    b:SetScript("OnMouseDown", function(btn)
-        if btn:IsEnabled() then btn.icon:SetTexture(btn.def.tex .. "-Down") end
-    end)
-    b:SetScript("OnMouseUp", function(btn) btn.icon:SetTexture(btn.def.tex .. "-Up") end)
     b:SetScript("OnClick", function(btn)
         if block.roll then UI:Roll(block.roll, btn.def) end
     end)
@@ -230,9 +224,21 @@ local function CreateBlock()
 
     local icon = header:CreateTexture(nil, "ARTWORK")
     icon:SetSize(ICON, ICON)
-    icon:SetPoint("LEFT", 0, 0)
-    icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon:SetPoint("LEFT", 1, 0)
     block.icon = icon
+    -- classic bag slot frame around the icon
+    local slot = header:CreateTexture(nil, "BACKGROUND")
+    slot:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+    slot:SetSize(ICON * 1.75, ICON * 1.75)
+    slot:SetPoint("CENTER", icon, "CENTER", 0, 0)
+    -- quality coloured glow, like on action buttons
+    local glow = header:CreateTexture(nil, "OVERLAY")
+    glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    glow:SetBlendMode("ADD")
+    glow:SetSize(ICON * 1.85, ICON * 1.85)
+    glow:SetPoint("CENTER", icon, "CENTER", 0, 0)
+    glow:Hide()
+    block.glow = glow
 
     block.btnRow = CreateFrame("Frame", nil, block)
     block.btnRow:SetPoint("TOPLEFT", CARD, -CARD - ROW_H - 2)
@@ -250,15 +256,24 @@ local function CreateBlock()
     block.winner:Hide()
 
     block.item = Font(header, "GameFontNormal")
-    block.item:SetPoint("LEFT", icon, "RIGHT", 7, 2)
+    block.item:SetPoint("LEFT", icon, "RIGHT", 8, 5)
     block.item:SetJustifyH("LEFT")
     block.item:SetWordWrap(false)
 
+    -- classic status bar (as on unit and cast bars) with a dark edge
     local bar = CreateFrame("StatusBar", nil, header)
-    bar:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 7, 1)
-    bar:SetHeight(3)
-    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8X8")
+    bar:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 9, 2)
+    bar:SetHeight(7)
+    bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     bar:SetMinMaxValues(0, 1)
+    local edge = bar:CreateTexture(nil, "BACKGROUND", nil, -1)
+    edge:SetPoint("TOPLEFT", -1, 1)
+    edge:SetPoint("BOTTOMRIGHT", 1, -1)
+    edge:SetColorTexture(0, 0, 0, 1)
+    local back = bar:CreateTexture(nil, "BACKGROUND")
+    back:SetAllPoints()
+    back:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    back:SetVertexColor(0.15, 0.15, 0.15, 0.9)
     block.bar = bar
 
     return block
@@ -290,7 +305,7 @@ function UI:UpdateBlockLive(block)
     else
         block.item:SetPoint("RIGHT", 0, 2)
     end
-    block.bar:SetPoint("RIGHT", 0, 0)
+    block.bar:SetPoint("RIGHT", -1, 0)
 
     -- the button row is laid out by FillBlock; here it only goes away in time
     if block.btnRow:IsShown() and not (R.CanRoll(roll) and left > 0) then
@@ -318,15 +333,19 @@ local function LayoutButtons(block, roll)
             shown[#shown + 1] = b
         end
     end
-    local w = ((block.innerW or INNER_W) - BTN_GAP * (#shown - 1)) / #shown
+    -- centred, with some room between them
+    local total = #shown * BTN + (#shown - 1) * BTN_SPACING
+    local x = math.floor(((block.innerW or INNER_W) - total) / 2)
     for i, b in ipairs(shown) do
         local allowed = (b.def.can == nil) or roll[b.def.can] ~= false
         b:SetEnabled(allowed)
-        b.icon:SetDesaturated(not allowed)
-        b.icon:SetAlpha(allowed and 1 or 0.4)
-        b:SetWidth(w)
+        local tex = b:GetNormalTexture()
+        if tex then
+            tex:SetDesaturated(not allowed)
+            tex:SetAlpha(allowed and 1 or 0.4)
+        end
         b:ClearAllPoints()
-        b:SetPoint("LEFT", (i - 1) * (w + BTN_GAP), 0)
+        b:SetPoint("LEFT", x + (i - 1) * (BTN + BTN_SPACING), 0)
         b:Show()
     end
 end
@@ -348,6 +367,14 @@ function UI:FillBlock(block, roll)
     block.icon:SetTexture(roll.texture or (ns.ItemIcon and ns.ItemIcon(roll.link)) or QUESTION_TEX)
     block.item:SetText(R.ItemName(roll.link) or roll.name or "?")
     block.item:SetTextColor(QualityColor(roll))
+    local q = roll.quality or (roll.link and tonumber(roll.link:match("|cnIQ(%d+):") or ""))
+    if q and q >= 2 then
+        block.glow:SetVertexColor(QualityColor(roll))
+        block.glow:SetAlpha(roll.done and 0.35 or 0.8)
+        block.glow:Show()
+    else
+        block.glow:Hide()
+    end
     local mine = roll.result == "won" and ns.PlayerName and roll.winner == ns.PlayerName()
     block.item:SetAlpha((roll.done and not mine) and 0.6 or 1)
     block.icon:SetDesaturated(roll.done and not mine and true or false)
@@ -389,7 +416,7 @@ function UI:FillBlock(block, roll)
             local line = AcquireLine(block)
             line:SetPoint("TOPLEFT", CARD, y)
             line:SetPoint("TOPRIGHT", -CARD, y)
-            FillLine(line, p, roll)
+            FillLine(line, p, roll, #block.lines + 1)
             block.lines[#block.lines + 1] = line
             y = y - LINE_H
         end
@@ -561,11 +588,14 @@ function UI:Create()
     if bar.SetObeyStepOnDrag then bar:SetObeyStepOnDrag(false) end
     bar.track = bar:CreateTexture(nil, "BACKGROUND")
     bar.track:SetAllPoints()
-    bar.track:SetColorTexture(0, 0, 0, 0.5)
+    bar.track:SetColorTexture(0, 0, 0, 0.45)
+    -- classic scroll knob
     bar.thumb = bar:CreateTexture(nil, "OVERLAY")
-    bar.thumb:SetColorTexture(0.85, 0.7, 0.3, 0.9)
-    bar.thumb:SetSize(SCROLLBAR_W, 30)
+    bar.thumb:SetTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
+    bar.thumb:SetTexCoord(0.2, 0.8, 0.125, 0.875)
+    bar.thumb:SetSize(SCROLLBAR_W, 24)
     bar:SetThumbTexture(bar.thumb)
+    bar.fixedThumb = true
     bar:SetScript("OnValueChanged", function(_, value)
         if UI.settingBar then return end
         UI:ScrollTo(value)
@@ -718,7 +748,7 @@ function UI:Refresh()
     self.maxScroll = needBar and (y - visible) or 0
     if needBar then
         self.bar:SetMinMaxValues(0, self.maxScroll)
-        self.bar.thumb:SetHeight(math.max(20, visible * visible / y))
+        if not self.bar.fixedThumb then self.bar.thumb:SetHeight(math.max(20, visible * visible / y)) end
         self.bar:Show()
     else
         self.bar:Hide()

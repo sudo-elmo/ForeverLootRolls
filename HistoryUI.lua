@@ -12,7 +12,7 @@ local PAD = 16
 local TOP = 52            -- banner + filter row
 local BOTTOM = 40         -- delete button row
 local ROW_H = 22
-local SCROLLBAR_W = 8
+local SCROLLBAR_W = 14
 local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
 
 local CHOICE_TEX = {
@@ -96,13 +96,17 @@ local function CreateRow(parent)
     row:RegisterForClicks("LeftButtonUp")
     row.bg = row:CreateTexture(nil, "BACKGROUND")
     row.bg:SetAllPoints()
+    -- classic quest log highlight
     local hl = row:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
-    hl:SetColorTexture(1, 1, 1, 0.07)
+    hl:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+    hl:SetBlendMode("ADD")
+    hl:SetAlpha(0.5)
 
-    -- group header
-    row.arrow = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    row.arrow:SetPoint("LEFT", 2, 0)
+    -- group header: classic +/- button like in the quest log
+    row.arrow = row:CreateTexture(nil, "ARTWORK")
+    row.arrow:SetSize(14, 14)
+    row.arrow:SetPoint("LEFT", 0, 0)
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.title:SetPoint("LEFT", 16, 0)
     row.title:SetJustifyH("LEFT")
@@ -163,7 +167,8 @@ local function FillRow(row, data)
     row.winner:SetShown(not isGroup)
     if isGroup then
         local title, when = GroupTitle(data)
-        row.arrow:SetText(data.collapsed and "+" or "–")
+        row.arrow:SetTexture(data.collapsed and "Interface\\Buttons\\UI-PlusButton-Up"
+            or "Interface\\Buttons\\UI-MinusButton-Up")
         row.title:SetText(title .. " |cffbbbbbb(" .. data.count .. ")|r")
         row.when:SetText(when)
         row.bg:SetColorTexture(1, 0.82, 0, 0.12)
@@ -298,8 +303,9 @@ function H:Create()
     bar.track:SetAllPoints()
     bar.track:SetColorTexture(0, 0, 0, 0.5)
     bar.thumb = bar:CreateTexture(nil, "OVERLAY")
-    bar.thumb:SetColorTexture(0.85, 0.7, 0.3, 0.9)
-    bar.thumb:SetSize(SCROLLBAR_W, 30)
+    bar.thumb:SetTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
+    bar.thumb:SetTexCoord(0.2, 0.8, 0.125, 0.875)
+    bar.thumb:SetSize(SCROLLBAR_W, 24)
     bar:SetThumbTexture(bar.thumb)
     bar:SetScript("OnValueChanged", function(_, v)
         if H.settingBar then return end
@@ -346,8 +352,6 @@ function H:Draw()
     self.empty:SetShown(#rows == 0)
     if maxOffset > 0 then
         self.bar:SetMinMaxValues(0, maxOffset)
-        local track = HEIGHT - TOP - BOTTOM
-        self.bar.thumb:SetHeight(math.max(20, track * self.visible / #rows))
         self.settingBar = true
         self.bar:SetValue(self.offset)
         self.settingBar = nil

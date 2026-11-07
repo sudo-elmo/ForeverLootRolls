@@ -43,6 +43,11 @@ Options → AddOns → Forever Loot Rolls, or the gear in the window:
 - Background opacity (100 % = solid black)
 - Maximum window height (longer lists scroll)
 - How many rolls the list keeps
+- How many items the loot history keeps (default 1000, up to 5000)
+
+## Loot history size
+
+The loot history is saved per character in `WTF/Account/<account>/<realm>/<character>/SavedVariables/ForeverLootRolls.lua`. It is limited by the number of items (setting "Items in the loot history", default 1000, up to 5000); when the limit is reached, the oldest items are removed first. One item takes roughly 0.3–0.5 KB, so 1000 items are about 0.5 MB – no problem for the game. There is no age limit. "Delete history" in the history window empties it completely.
 
 ## How it works
 

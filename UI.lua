@@ -2,7 +2,7 @@
 -- below it every player with the icon of their choice and their roll.
 -- Everything else lives in the tooltip. Newest item on top.
 local _, ns = ...
-local L, R = ns.L, ns.Rolls
+local L, R, S = ns.L, ns.Rolls, ns.Skin
 
 local UI = {}
 ns.UI = UI
@@ -119,8 +119,15 @@ local function ReleaseLines(block)
 end
 
 local function FillLine(line, p, roll, index)
-    -- every other line slightly lighter, like classic lists
-    line.stripe:SetColorTexture(1, 1, 1, (index % 2 == 0) and 0.05 or 0)
+    -- every other line on the character window's row background (native),
+    -- or slightly lighter (classic)
+    if index % 2 == 1 then
+        if not (UI.native and S.Atlas(line.stripe, "line")) then line.stripe:SetColorTexture(1, 1, 1, 0.05) end
+        line.stripe:SetAlpha(UI.native and 0.7 or 1)
+        line.stripe:Show()
+    else
+        line.stripe:Hide()
+    end
     line.icon:SetTexture(p.choice and CHOICE_TEX[p.choice] or (roll.done and QUESTION_TEX or WAIT_TEX))
     line.name:SetText(p.name)
     if p.choice == "pass" or (roll.done and not p.choice) then
@@ -187,10 +194,11 @@ local function ShowItemTooltip(owner, roll)
 end
 
 local function CreateBlock()
-    -- every item sits on its own dark card
-    local block = CreateFrame("Frame", nil, nil, BACKDROP_TEMPLATE)
+    -- every item sits on its own card: native = list header like the
+    -- reputation tab, classic = dark tooltip card
+    local block = CreateFrame("Frame", nil, nil, (not UI.native) and BACKDROP_TEMPLATE or nil)
     block:SetWidth(CONTENT_W)
-    if block.SetBackdrop then
+    if not UI.native and block.SetBackdrop then
         block:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8X8",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
@@ -222,12 +230,34 @@ local function CreateBlock()
     header:SetScript("OnLeave", function() GameTooltip:Hide() end)
     block.header = header
 
-    local icon = header:CreateTexture(nil, "ARTWORK")
+    if UI.native then
+        block.headerBg = header:CreateTexture(nil, "BACKGROUND")
+        block.headerBg:SetAllPoints()
+        if not S.Atlas(block.headerBg, "header") then block.headerBg:SetColorTexture(1, 1, 1, 0.06) end
+        -- + / - on the right, like reputation headers
+        block.state = header:CreateTexture(nil, "ARTWORK")
+        block.state:SetSize(14, 14)
+        block.state:SetPoint("RIGHT", -8, 0)
+    end
+
+    local icon = header:CreateTexture(nil, "ARTWORK", nil, 1)
     icon:SetSize(ICON, ICON)
-    icon:SetPoint("LEFT", 1, 0)
+    icon:SetPoint("LEFT", UI.native and 6 or 1, 0)
     block.icon = icon
+    if UI.native then
+        -- gear slot from the character window around the icon
+        local gearSlot = header:CreateTexture(nil, "ARTWORK")
+        if S.Atlas(gearSlot, "slot", true) then
+            gearSlot:SetPoint("CENTER", icon, "CENTER", 0, 0)
+            icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+            icon:SetSize(ICON - 4, ICON - 4)
+        else
+            gearSlot:Hide()
+        end
+    end
     -- classic bag slot frame around the icon
-    local slot = header:CreateTexture(nil, "BACKGROUND")
+    local slot = header:CreateTexture(nil, "BACKGROUND", nil, 1)
+    if UI.native then slot:Hide() end
     slot:SetTexture("Interface\\Buttons\\UI-Quickslot2")
     slot:SetSize(ICON * 1.75, ICON * 1.75)
     slot:SetPoint("CENTER", icon, "CENTER", 0, 0)
@@ -251,7 +281,7 @@ local function CreateBlock()
 
     -- who got it, shown small on the right while the block is folded in
     block.winner = Font(header, "GameFontHighlightSmall")
-    block.winner:SetPoint("RIGHT", 0, 0)
+    block.winner:SetPoint("RIGHT", UI.native and -26 or 0, 0)
     block.winner:SetJustifyH("RIGHT")
     block.winner:Hide()
 
@@ -275,6 +305,19 @@ local function CreateBlock()
     back:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
     back:SetVertexColor(0.15, 0.15, 0.15, 0.9)
     block.bar = bar
+
+    -- native: the reputation bar on the right of the line, seconds inside
+    if UI.native then
+        local pbar = S.ProgressBar(header)
+        if pbar then
+            pbar:SetSize(96, 24)
+            pbar:SetPoint("RIGHT", -26, 0)
+            pbar:Hide()
+            block.pbar = pbar
+            bar:Hide()
+            bar.disabled = true
+        end
+    end
 
     return block
 end
@@ -300,6 +343,32 @@ function UI:UpdateBlockLive(block)
     if not roll then return end
     local left = Remaining(roll)
     local showBar = not roll.done and left > 0
+
+    if block.pbar then
+        -- native: name centred, reputation bar with the seconds on the right
+        block.item:ClearAllPoints()
+        block.item:SetPoint("LEFT", block.icon, "RIGHT", 8, 0)
+        if showBar then
+            local frac = math.min(1, left / (roll.duration or 60))
+            block.pbar:SetFillPercent(frac)
+            local types = ColoredProgressBarMixin and ColoredProgressBarMixin.ColorType
+            if types and block.pbar.SetFillTextureByColorType then
+                block.pbar:SetFillTextureByColorType(frac > 0.25 and types.Green or types.Red)
+            end
+            if block.pbar.SetText then block.pbar:SetText(("%d s"):format(math.ceil(left))) end
+            block.pbar:Show()
+            block.item:SetPoint("RIGHT", block.pbar, "LEFT", -6, 0)
+        else
+            block.pbar:Hide()
+            if block.winner:IsShown() then
+                block.item:SetPoint("RIGHT", block.winner, "LEFT", -6, 0)
+            else
+                block.item:SetPoint("RIGHT", -26, 0)
+            end
+        end
+        if block.btnRow:IsShown() and not (R.CanRoll(roll) and left > 0) then block.btnRow:Hide() end
+        return
+    end
 
     -- with the time bar the name sits above it; without it (finished items)
     -- the name is centred on the icon
@@ -374,7 +443,7 @@ function UI:FillBlock(block, roll)
     block.item:SetText(R.ItemName(roll.link) or roll.name or "?")
     block.item:SetTextColor(QualityColor(roll))
     local q = roll.quality or (roll.link and tonumber(roll.link:match("|cnIQ(%d+):") or ""))
-    if q and q >= 2 then
+    if q and q >= 2 and not UI.native then
         block.glow:SetVertexColor(QualityColor(roll))
         block.glow:SetAlpha(roll.done and 0.35 or 0.8)
         block.glow:Show()
@@ -429,9 +498,24 @@ function UI:FillBlock(block, roll)
         height = -y + CARD
     end
     block:SetHeight(height)
+    -- native: header tinted green for own wins, dimmed when done; + / - icon
+    if UI.native then
+        local won = roll.result == "won" and ns.PlayerName and roll.winner == ns.PlayerName()
+        if won then
+            block.headerBg:SetVertexColor(0.55, 1, 0.55)
+            block.headerBg:SetAlpha(1)
+        else
+            block.headerBg:SetVertexColor(1, 1, 1)
+            block.headerBg:SetAlpha(roll.done and 0.6 or 1)
+        end
+        if not S.Atlas(block.state, self:IsCollapsed(roll) and "plus" or "minus") then
+            block.state:SetTexture(self:IsCollapsed(roll) and "Interface\\Buttons\\UI-PlusButton-Up"
+                or "Interface\\Buttons\\UI-MinusButton-Up")
+        end
+    end
     -- gold edge while the roll is open, grey once it is done,
     -- green with a green tint for items you won yourself
-    if block.SetBackdropBorderColor then
+    if not UI.native and block.SetBackdropBorderColor then
         local mine = roll.result == "won" and ns.PlayerName and roll.winner == ns.PlayerName()
         if mine then
             block:SetBackdropBorderColor(0.2, 1, 0.2, 1)
@@ -478,10 +562,14 @@ end
 
 function UI:Create()
     if self.frame then return self.frame end
-    local f = CreateFrame("Frame", "ForeverLootRollsFrame", UIParent, BACKDROP_TEMPLATE)
+    -- native WoW Forever window (metal frame, title bar) if the client has it,
+    -- else the classic dialog frame
+    local f = S.Panel("ForeverLootRollsFrame", UIParent, L.title)
+    self.native = f ~= nil
+    f = f or CreateFrame("Frame", "ForeverLootRollsFrame", UIParent, BACKDROP_TEMPLATE)
     f:SetSize(WIDTH, 40)
     -- same dialog frame as Forever Dice & Ale
-    if f.SetBackdrop then
+    if not self.native and f.SetBackdrop then
         f:SetBackdrop({
             -- plain black; how see-through it is comes from the opacity setting
             bgFile = "Interface\\Buttons\\WHITE8X8",
@@ -510,24 +598,31 @@ function UI:Create()
     f:Hide()
     self.frame = f
 
-    -- small classic title banner on the top edge, like Forever Dice & Ale
-    local banner = f:CreateTexture(nil, "ARTWORK")
-    banner:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-    banner:SetSize(240, 56)
-    banner:SetPoint("TOP", 0, 12)
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    title:SetPoint("TOP", banner, "TOP", 0, -12)
-    title:SetText(L.title)
-    if f.SetClampRectInsets then f:SetClampRectInsets(0, 0, 12, 0) end
+    local close
+    if self.native then
+        close = f.CloseButton
+        -- the character pane background behind the list, with its thin frame
+        self.insetBg = S.Inset(f, 6, 24, 4, PAD + FOOTER - 8)
+    else
+        -- small classic title banner on the top edge, like Forever Dice & Ale
+        local banner = f:CreateTexture(nil, "ARTWORK")
+        banner:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
+        banner:SetSize(240, 56)
+        banner:SetPoint("TOP", 0, 12)
+        local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        title:SetPoint("TOP", banner, "TOP", 0, -12)
+        title:SetText(L.title)
+        if f.SetClampRectInsets then f:SetClampRectInsets(0, 0, 12, 0) end
 
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    close:SetSize(28, 28)
-    close:SetPoint("TOPRIGHT", -4, -4)
+        close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+        close:SetSize(28, 28)
+        close:SetPoint("TOPRIGHT", -4, -4)
+    end
 
     -- small gear left of the X: opens the settings page (as in Forever Dice & Ale)
     local gear = CreateFrame("Button", nil, f)
-    gear:SetSize(18, 18)
-    gear:SetPoint("RIGHT", close, "LEFT", 2, 0)
+    gear:SetSize(self.native and 16 or 18, self.native and 16 or 18)
+    gear:SetPoint("RIGHT", close, "LEFT", self.native and 0 or 2, 0)
     local gearTex = gear:CreateTexture(nil, "ARTWORK")
     gearTex:SetTexture("Interface\\Worldmap\\Gear_64Grey")
     gearTex:SetAllPoints()
@@ -553,8 +648,13 @@ function UI:Create()
 
     -- note far left: opens the long-term loot history
     local note = CreateFrame("Button", nil, f)
-    note:SetSize(18, 18)
-    note:SetPoint("TOPLEFT", 12, -9)
+    if self.native then
+        note:SetSize(16, 16)
+        note:SetPoint("TOPLEFT", 8, -3)   -- left end of the title bar
+    else
+        note:SetSize(18, 18)
+        note:SetPoint("TOPLEFT", 12, -9)
+    end
     local noteTex = note:CreateTexture(nil, "ARTWORK")
     noteTex:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
     noteTex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -583,7 +683,15 @@ function UI:Create()
         UI:ScrollTo((UI.scrollPos or 0) - delta * ROW_H * 2)
     end)
 
-    -- slim scroll bar, only shown when the list is taller than the window
+    -- Blizzard's slim scroll bar (native), shown when the list is taller than the window
+    local nativeBar = self.native and S.ScrollBarFor(f, scroll)
+    if nativeBar then
+        nativeBar:SetPoint("TOPRIGHT", -PAD + 4, -PAD - TITLE_SPACE - 2)
+        nativeBar:SetPoint("BOTTOMRIGHT", -PAD + 4, PAD + FOOTER + 2)
+        nativeBar:Hide()
+        self.bar, self.nativeBar = nativeBar, true
+    end
+    -- classic slim scroll bar
     local bar = CreateFrame("Slider", nil, f)
     bar:SetOrientation("VERTICAL")
     bar:SetWidth(SCROLLBAR_W)
@@ -611,7 +719,7 @@ function UI:Create()
         UI:ScrollTo((UI.scrollPos or 0) - delta * ROW_H * 2)
     end)
     bar:Hide()
-    self.bar = bar
+    if not self.nativeBar then self.bar = bar end
     local content = CreateFrame("Frame", nil, scroll)
     content:SetSize(CONTENT_W, 1)
     scroll:SetScrollChild(content)
@@ -696,6 +804,7 @@ function UI:ScrollTo(value)
     value = math.min(maxScroll, math.max(0, value or 0))
     self.scrollPos = value
     self.scroll:SetVerticalScroll(value)
+    if self.nativeBar then return end   -- Blizzard's bar follows the scroll frame
     if self.bar:IsShown() then
         self.settingBar = true
         self.bar:SetValue(value)
@@ -726,6 +835,12 @@ end
 -- Text, border and icons always stay fully visible.
 function UI:ApplyOpacity()
     local f = self.frame
+    local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 70) / 100))
+    if self.native then
+        if self.insetBg then self.insetBg:SetAlpha(a) end
+        if type(f.Bg) == "table" and f.Bg.SetAlpha then f.Bg:SetAlpha(a) end
+        return
+    end
     if f and f.SetBackdropColor then
         local a = math.max(0, math.min(1, (tonumber(Opt("opacity")) or 70) / 100))
         f:SetBackdropColor(0, 0, 0, a)
@@ -736,6 +851,10 @@ function UI:Refresh()
     local f = self.frame
     if not (f and f:IsShown()) then return end
     self:ApplyOpacity()
+    if self.nativeBar then
+        -- the player may have scrolled with Blizzard's bar
+        self.scrollPos = tonumber((self.scroll:GetVerticalScroll())) or self.scrollPos
+    end
     local chrome = 2 * PAD + TITLE_SPACE + FOOTER
     local maxH = tonumber(Opt("maxHeight")) or 380
     local visible = maxH - chrome
@@ -752,7 +871,9 @@ function UI:Refresh()
     f:SetHeight(math.min(maxH, y + chrome))
 
     self.maxScroll = needBar and (y - visible) or 0
-    if needBar then
+    if needBar and self.nativeBar then
+        self.bar:Show()
+    elseif needBar then
         self.bar:SetMinMaxValues(0, self.maxScroll)
         if not self.bar.fixedThumb then self.bar.thumb:SetHeight(math.max(20, visible * visible / y)) end
         self.bar:Show()

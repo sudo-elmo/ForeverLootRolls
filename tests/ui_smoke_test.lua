@@ -11,8 +11,11 @@ local frames = {}
 
 local function Widget(kind)
     local w = { _kind = kind, _shown = kind ~= "Frame-hidden", _scripts = {}, _points = {} }
+    function w:SetAlpha(v) self._alpha = v end
     return setmetatable(w, { __index = function(t, k)
-        -- unknown methods are no-ops that return nil
+        -- unknown methods (CamelCase, like the WoW API) are no-ops that return nil;
+        -- other fields are simply missing, as on real frames
+        if type(k) ~= "string" or not k:match("^%u") then return nil end
         local f = function() end
         rawset(t, k, f)
         return f
@@ -57,7 +60,21 @@ local function MakeFrame(kind, name)
     return f
 end
 
-CreateFrame = function(kind, name) return MakeFrame(kind, name) end
+-- native client: atlases and the scroll bar helper exist
+if not os.getenv("FALLBACK") then
+    C_Texture = { GetAtlasInfo = function(name) return { name = name } end }
+    ScrollUtil = { InitScrollFrameWithScrollBar = function(sf, bar) sf._nativeBar = bar end }
+end
+
+-- FALLBACK=1: the client has none of the native Forever templates
+local NATIVE_TEMPLATES = { DefaultPanelFlatTemplate = true, MinimalScrollBar = true,
+    ColoredProgressBarTemplate = true, UIPanelCloseButtonDefaultAnchors = true }
+CreateFrame = function(kind, name, parent, template)
+    if os.getenv("FALLBACK") and template and NATIVE_TEMPLATES[template] then
+        error("Couldn't find inherited node " .. template)
+    end
+    return MakeFrame(kind, name)
+end
 UIParent = MakeFrame("Frame", "UIParent")
 GameTooltip = MakeFrame("GameTooltip", "GameTooltip")
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) print("[chat] " .. m) end }
@@ -196,12 +213,16 @@ eq(registered.collapseDelay and registered.collapseDelay.default, 5, "collapse d
 SlashCmdList.FOREVERLOOTROLLS("test")
 local f = _G.ForeverLootRollsFrame
 eq(f and f:IsShown(), true, "demo opened the window")
+local function BgAlpha()
+    if ns.UI.native then return ns.UI.insetBg._alpha end
+    return f._bgAlpha
+end
 ns.db.opacity = 100
 ns.UI:Refresh()
-eq(f._bgAlpha, 1, "100 % = solid black background")
+eq(BgAlpha(), 1, "100 % = full background")
 ns.db.opacity = 40
 ns.UI:Refresh()
-eq(f._bgAlpha, 0.4, "lower opacity = see-through background")
+eq(BgAlpha(), 0.4, "lower opacity = see-through background")
 eq(rawget(f, "_alpha"), nil, "text and icons are not faded")
 ns.db.opacity = 70
 eq(f._strata, "MEDIUM", "window in the quest tracker's layer"); eq(f._level, 25, "just above the tracker")
@@ -340,7 +361,7 @@ ns.UI.note._scripts.OnEnter(ns.UI.note)
 ns.UI.note._scripts.OnClick(ns.UI.note)
 local hist = ns.HistoryUI
 eq(hist.frame:IsShown(), true, "note opens the history")
-eq(hist.frame._bgAlpha, ns.db.opacity / 100, "history uses the same background opacity")
+eq(hist.native and hist.insetBg._alpha or hist.frame._bgAlpha, ns.db.opacity / 100, "history uses the same background opacity")
 eq(hist.data[1].kind, "group", "history starts with a group")
 eq(hist.rows[2].data and hist.rows[2].data.kind, "item", "items listed under the group")
 hist.rows[2]._scripts.OnEnter(hist.rows[2])
@@ -391,5 +412,7 @@ Fire("PLAYER_LOGOUT")
 eq(type(ForeverLootRollsCharDB.history), "table", "history saved")
 
 fails = fails + handlerErrors
+print(("[%s look] "):format(ns.UI.native and "native" or "classic") .. (fails == 0 and "ui smoke test ok" or ("ui smoke test: " .. fails .. " failed")))
+do return os.exit(fails == 0 and 0 or 1) end
 print(fails == 0 and "ui smoke test ok" or ("ui smoke test: " .. fails .. " failed"))
 os.exit(fails == 0 and 0 or 1)

@@ -2,7 +2,7 @@
 -- visit (dungeon, raid or zone). Only the visible rows exist as frames, so
 -- long histories stay fast.
 local _, ns = ...
-local L, A = ns.L, ns.Archive
+local L, A, S = ns.L, ns.Archive, ns.Skin
 
 local H = {}
 ns.HistoryUI = H
@@ -96,23 +96,32 @@ local function CreateRow(parent)
     row:RegisterForClicks("LeftButtonUp")
     row.bg = row:CreateTexture(nil, "BACKGROUND")
     row.bg:SetAllPoints()
-    -- classic quest log highlight
+    -- native: the reputation list header art for groups (row.headerBg)
+    row.headerBg = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.headerBg:SetAllPoints()
+    if not (H.native and S.Atlas(row.headerBg, "header")) then row.headerBg:Hide() row.headerBg = nil end
+    -- hover: native line highlight, or the classic quest log highlight
     local hl = row:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
-    hl:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-    hl:SetBlendMode("ADD")
-    hl:SetAlpha(0.5)
+    if H.native and S.Atlas(hl, "hover") then
+        hl:SetAlpha(0.6)
+    else
+        hl:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
+        hl:SetBlendMode("ADD")
+        hl:SetAlpha(0.5)
+    end
 
-    -- group header: classic +/- button like in the quest log
+    -- group header: + / - (native: on the right like reputation headers,
+    -- classic: on the left like the quest log)
     row.arrow = row:CreateTexture(nil, "ARTWORK")
     row.arrow:SetSize(14, 14)
-    row.arrow:SetPoint("LEFT", 0, 0)
+    row.arrow:SetPoint(H.native and "RIGHT" or "LEFT", H.native and -8 or 0, 0)
     row.title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    row.title:SetPoint("LEFT", 16, 0)
+    row.title:SetPoint("LEFT", H.native and 10 or 16, 0)
     row.title:SetJustifyH("LEFT")
     row.title:SetWordWrap(false)
     row.when = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.when:SetPoint("RIGHT", -4, 0)
+    row.when:SetPoint("RIGHT", H.native and -26 or -4, 0)
     row.when:SetTextColor(0.7, 0.7, 0.7)
     row.title:SetPoint("RIGHT", row.when, "LEFT", -6, 0)
 
@@ -158,6 +167,7 @@ end
 local function FillRow(row, data)
     row.data = data
     local isGroup = data.kind == "group"
+    if row.headerBg then row.headerBg:SetShown(isGroup) end
     row.arrow:SetShown(isGroup)
     row.title:SetShown(isGroup)
     row.when:SetShown(isGroup)
@@ -167,11 +177,17 @@ local function FillRow(row, data)
     row.winner:SetShown(not isGroup)
     if isGroup then
         local title, when = GroupTitle(data)
-        row.arrow:SetTexture(data.collapsed and "Interface\\Buttons\\UI-PlusButton-Up"
-            or "Interface\\Buttons\\UI-MinusButton-Up")
+        if not (H.native and S.Atlas(row.arrow, data.collapsed and "plus" or "minus")) then
+            row.arrow:SetTexture(data.collapsed and "Interface\\Buttons\\UI-PlusButton-Up"
+                or "Interface\\Buttons\\UI-MinusButton-Up")
+        end
         row.title:SetText(title .. " |cffbbbbbb(" .. data.count .. ")|r")
         row.when:SetText(when)
-        row.bg:SetColorTexture(1, 0.82, 0, 0.12)
+        if row.headerBg then
+            row.bg:SetColorTexture(0, 0, 0, 0)
+        else
+            row.bg:SetColorTexture(1, 0.82, 0, 0.12)
+        end
     elseif data.kind == "player" then
         -- one player's roll under an opened item
         local p, e = data.player, data.entry
@@ -195,7 +211,7 @@ local function FillRow(row, data)
         row.winner:SetText(right)
         if A.IsMine(e) and p.winner then
             row.bg:SetColorTexture(0.1, 0.6, 0.1, 0.18)
-        else
+        elseif not (H.native and S.Atlas(row.bg, "line")) then
             row.bg:SetColorTexture(0, 0, 0, 0.3)
         end
     else
@@ -222,9 +238,12 @@ end
 
 function H:Create()
     if self.frame then return self.frame end
-    local f = CreateFrame("Frame", "ForeverLootRollsHistoryFrame", UIParent, BACKDROP_TEMPLATE)
+    -- native WoW Forever window if the client has it, else the classic dialog
+    local f = S.Panel("ForeverLootRollsHistoryFrame", UIParent, L.history)
+    self.native = f ~= nil
+    f = f or CreateFrame("Frame", "ForeverLootRollsHistoryFrame", UIParent, BACKDROP_TEMPLATE)
     f:SetSize(WIDTH, HEIGHT)
-    if f.SetBackdrop then
+    if not self.native and f.SetBackdrop then
         f:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8X8",   -- black, opacity from the settings
             edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -244,20 +263,24 @@ function H:Create()
     f:Hide()
     self.frame = f
 
-    local banner = f:CreateTexture(nil, "ARTWORK")
-    banner:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-    banner:SetSize(260, 56)
-    banner:SetPoint("TOP", 0, 12)
-    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    title:SetPoint("TOP", banner, "TOP", 0, -12)
-    title:SetText(L.history)
+    if self.native then
+        self.insetBg = S.Inset(f, 6, 24, 4, BOTTOM - 6)
+    else
+        local banner = f:CreateTexture(nil, "ARTWORK")
+        banner:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
+        banner:SetSize(260, 56)
+        banner:SetPoint("TOP", 0, 12)
+        local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        title:SetPoint("TOP", banner, "TOP", 0, -12)
+        title:SetText(L.history)
 
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    close:SetSize(28, 28)
-    close:SetPoint("TOPRIGHT", -4, -4)
+        local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+        close:SetSize(28, 28)
+        close:SetPoint("TOPRIGHT", -4, -4)
+    end
 
-    -- filter: only my wins
-    local mine = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    -- filter: only my wins (native: the minimal checkbox from the reputation pane)
+    local mine = (self.native and S.CheckButton(f)) or CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
     mine:SetSize(24, 24)
     mine:SetPoint("TOPLEFT", PAD - 4, -24)
     local mineText = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -334,6 +357,20 @@ function H:Create()
     self.empty:SetPoint("TOP", 0, -30)
     self.empty:SetText(L.historyEmpty)
 
+    -- native: Blizzard's slim scroll bar, driving the row offset
+    local nativeBar = self.native and S.ScrollBar(f)
+    if nativeBar then
+        nativeBar:SetPoint("TOPRIGHT", -PAD + 4, -TOP)
+        nativeBar:SetPoint("BOTTOMRIGHT", -PAD + 4, BOTTOM)
+        local event = (BaseScrollBoxEvents and BaseScrollBoxEvents.OnScroll) or "OnScroll"
+        nativeBar:RegisterCallback(event, function(_, pct)
+            if H.settingBar then return end
+            local maxOffset = math.max(0, #(H.data or {}) - H.visible)
+            H.offset = math.floor((tonumber(pct) or 0) * maxOffset + 0.5)
+            H:Draw()
+        end, H)
+        self.nativeBar = nativeBar
+    end
     local bar = CreateFrame("Slider", nil, f)
     bar:SetOrientation("VERTICAL")
     bar:SetWidth(SCROLLBAR_W)
@@ -355,7 +392,12 @@ function H:Create()
     end)
     bar:EnableMouseWheel(true)
     bar:SetScript("OnMouseWheel", function(_, delta) H:ScrollBy(-delta * 3) end)
-    self.bar = bar
+    if nativeBar then
+        bar:Hide()
+        self.bar = nativeBar
+    else
+        self.bar = bar
+    end
 
     local clear = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     clear:SetSize(130, 22)
@@ -391,7 +433,15 @@ function H:Draw()
         end
     end
     self.empty:SetShown(#rows == 0)
-    if maxOffset > 0 then
+    if maxOffset > 0 and self.nativeBar then
+        self.settingBar = true
+        if self.bar.SetVisibleExtentPercentage then self.bar:SetVisibleExtentPercentage(self.visible / #rows) end
+        if self.bar.SetPanExtentPercentage then self.bar:SetPanExtentPercentage(math.min(1, 3 / maxOffset)) end
+        self.bar:SetScrollPercentage(self.offset / maxOffset,
+            ScrollBoxConstants and ScrollBoxConstants.NoScrollInterpolation)
+        self.settingBar = nil
+        self.bar:Show()
+    elseif maxOffset > 0 then
         self.bar:SetMinMaxValues(0, maxOffset)
         self.settingBar = true
         self.bar:SetValue(self.offset)
@@ -405,6 +455,14 @@ end
 -- same background opacity setting as the roll window
 function H:ApplyOpacity()
     local f = self.frame
+    if self.native then
+        local v = ns.db and ns.db.opacity
+        if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 70 end
+        local a = math.max(0, math.min(1, (tonumber(v) or 70) / 100))
+        if self.insetBg then self.insetBg:SetAlpha(a) end
+        if type(f.Bg) == "table" and f.Bg.SetAlpha then f.Bg:SetAlpha(a) end
+        return
+    end
     if f and f.SetBackdropColor then
         local v = ns.db and ns.db.opacity
         if v == nil then v = ns.DEFAULTS and ns.DEFAULTS.opacity or 70 end

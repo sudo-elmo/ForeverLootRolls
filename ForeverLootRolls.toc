@@ -17,6 +17,7 @@ Locales.lua
 Parser.lua
 Rolls.lua
 Archive.lua
+Skin.lua
 UI.lua
 HistoryUI.lua
 Demo.lua

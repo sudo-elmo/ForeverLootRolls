@@ -26,3 +26,6 @@ jobs:
 
       - name: Window smoke test (stubbed WoW API)
         run: lua5.1 tests/ui_smoke_test.lua .
+
+      - name: Window smoke test without the native Forever templates
+        run: FALLBACK=1 lua5.1 tests/ui_smoke_test.lua .

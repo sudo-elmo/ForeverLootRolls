@@ -21,6 +21,10 @@ As soon as your group has to roll on an item, the window opens and shows live wh
 - Shift-click an item to link it in chat, Ctrl-click to try it on
 - English and German (follows your game language); the chat messages are read in every game language
 
+## Look
+
+The windows use WoW Forever's own interface parts, the same as the character and reputation window: the metal window frame with title bar, the character pane background, list headers with +/-, the gear slot, striped rows, the reputation bar for the time left and Blizzard's slim scroll bar. If a client lacks any of these, the windows fall back to a classic look.
+
 ## Commands
 
 | Command | |

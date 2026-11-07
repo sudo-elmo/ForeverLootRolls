@@ -90,20 +90,14 @@ function S.SetFoldIcon(tex, collapsed)
     end
 end
 
--- Bottom bar for the window's buttons, between the list and the frame edge,
--- on the character window's title plate. Returns the bar frame.
+-- Bottom bar for the window's buttons, between the list and the frame edge.
+-- No art of its own: the window's grey background shows. Its only job is to
+-- centre the buttons vertically. Returns the bar frame.
 function S.Footer(f, top)
     local bar = CreateFrame("Frame", nil, f)
     bar:SetPoint("BOTTOMLEFT", 6, 5)
     bar:SetPoint("BOTTOMRIGHT", -4, 5)
     bar:SetHeight(math.max(18, top - 5 - 2))
-    local bg = bar:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    if S.Atlas(bg, "UI-Character-Info-Title") then
-        bg:SetAlpha(0.9)
-    else
-        bg:SetColorTexture(0, 0, 0, 0.5)
-    end
     return bar
 end
 

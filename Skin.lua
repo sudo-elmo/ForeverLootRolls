@@ -85,13 +85,14 @@ end
 -- Bottom bar for the window's buttons, between the list and the frame edge.
 -- No art of its own: the window's grey background shows. Its only job is to
 -- centre the buttons vertically. Returns the bar frame.
--- It spans from the window's bottom edge (Forever's metal border hangs mostly
--- below the frame) up to the list's frame at `top`.
+-- It spans the visible grey area: from the inner edge of the metal border at
+-- the bottom (about 8 px up, measured in game) to the list's frame at `top`.
+S.FOOTER_BOTTOM = 8
 function S.Footer(f, top)
     local bar = CreateFrame("Frame", nil, f)
-    bar:SetPoint("BOTTOMLEFT", 6, 0)
-    bar:SetPoint("BOTTOMRIGHT", -4, 0)
-    bar:SetHeight(math.max(18, top - 1))
+    bar:SetPoint("BOTTOMLEFT", 6, S.FOOTER_BOTTOM)
+    bar:SetPoint("BOTTOMRIGHT", -4, S.FOOTER_BOTTOM)
+    bar:SetHeight(math.max(18, top - 1 - S.FOOTER_BOTTOM))
     return bar
 end
 

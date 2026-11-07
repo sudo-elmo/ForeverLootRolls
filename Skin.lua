@@ -53,6 +53,11 @@ function S.Panel(name, parent, title)
         close:SetPoint("TOPRIGHT", 2, 1)
     end
     f.CloseButton = close
+    -- keep the X above the metal frame art of the title bar
+    if close.SetFrameLevel then close:SetFrameLevel((f:GetFrameLevel() or 1) + 20) end
+    f:HookScript("OnShow", function()
+        if close.SetFrameLevel then close:SetFrameLevel((f:GetFrameLevel() or 1) + 20) end
+    end)
     return f
 end
 

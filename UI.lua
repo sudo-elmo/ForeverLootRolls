@@ -236,7 +236,8 @@ local function CreateBlock()
         if not S.Atlas(block.headerBg, "header") then block.headerBg:SetColorTexture(1, 1, 1, 0.06) end
         -- + / - on the right, like reputation headers
         block.state = header:CreateTexture(nil, "ARTWORK")
-        block.state:SetSize(14, 14)
+        block.state:SetSize(12, 12)
+        block.state:SetAlpha(0.8)
         block.state:SetPoint("RIGHT", -8, 0)
     end
 
@@ -279,7 +280,7 @@ local function CreateBlock()
 
     -- who got it, shown small on the right while the block is folded in
     block.winner = Font(header, "GameFontHighlightSmall")
-    block.winner:SetPoint("RIGHT", UI.native and -26 or 0, 0)
+    block.winner:SetPoint("RIGHT", UI.native and -24 or 0, 0)
     block.winner:SetJustifyH("RIGHT")
     block.winner:Hide()
 
@@ -309,7 +310,7 @@ local function CreateBlock()
         local pbar = S.ProgressBar(header)
         if pbar then
             pbar:SetSize(96, 24)
-            pbar:SetPoint("RIGHT", -26, 0)
+            pbar:SetPoint("RIGHT", -24, 0)
             pbar:Hide()
             block.pbar = pbar
             bar:Hide()
@@ -361,7 +362,7 @@ function UI:UpdateBlockLive(block)
             if block.winner:IsShown() then
                 block.item:SetPoint("RIGHT", block.winner, "LEFT", -6, 0)
             else
-                block.item:SetPoint("RIGHT", -26, 0)
+                block.item:SetPoint("RIGHT", -24, 0)
             end
         end
         if block.btnRow:IsShown() and not (R.CanRoll(roll) and left > 0) then block.btnRow:Hide() end
@@ -570,6 +571,13 @@ function UI:Create()
     -- else the classic dialog frame
     local f = S.Panel("ForeverLootRollsFrame", UIParent, L.title)
     self.native = f ~= nil
+    if self.native then
+        -- the list headers bring their own frame: a bit wider, no extra
+        -- card padding, rows closer together
+        WIDTH, CARD, GAP = 300, 0, 4
+        CONTENT_W = WIDTH - 2 * PAD
+        INNER_W = CONTENT_W - 2 * CARD
+    end
     f = f or CreateFrame("Frame", "ForeverLootRollsFrame", UIParent, BACKDROP_TEMPLATE)
     f:SetSize(WIDTH, 40)
     -- same dialog frame as Forever Dice & Ale
@@ -678,6 +686,18 @@ function UI:Create()
     end)
     note:SetScript("OnLeave", function() GameTooltip:Hide() end)
     self.note = note
+    if self.native then
+        -- above the metal frame art, or the title bar would cover them
+        -- (again after the window got its layer, see UI.ApplyLayer)
+        local function Raise()
+            local level = (f:GetFrameLevel() or 1) + 20
+            for _, b in ipairs({ close, gear, note }) do
+                if b and b.SetFrameLevel then b:SetFrameLevel(level) end
+            end
+        end
+        Raise()
+        f:HookScript("OnShow", Raise)
+    end
 
     local scroll = CreateFrame("ScrollFrame", nil, f)
     scroll:SetPoint("TOPLEFT", PAD, -PAD - TITLE_SPACE)
@@ -690,8 +710,8 @@ function UI:Create()
     -- Blizzard's slim scroll bar (native), shown when the list is taller than the window
     local nativeBar = self.native and S.ScrollBarFor(f, scroll)
     if nativeBar then
-        nativeBar:SetPoint("TOPRIGHT", -PAD + 4, -PAD - TITLE_SPACE - 2)
-        nativeBar:SetPoint("BOTTOMRIGHT", -PAD + 4, PAD + FOOTER + 2)
+        nativeBar:SetPoint("TOPRIGHT", -PAD + 4, -PAD - TITLE_SPACE - 6)
+        nativeBar:SetPoint("BOTTOMRIGHT", -PAD + 4, PAD + FOOTER + 6)
         nativeBar:Hide()
         self.bar, self.nativeBar = nativeBar, true
     end
@@ -735,7 +755,11 @@ function UI:Create()
 
     local clear = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     clear:SetSize(80, 20)
-    clear:SetPoint("BOTTOMLEFT", PAD - 1, PAD - 2)
+    if self.native then
+        clear:SetPoint("BOTTOMLEFT", 10, 7)
+    else
+        clear:SetPoint("BOTTOMLEFT", PAD - 1, PAD - 2)
+    end
     clear:SetText(L.clear)
     clear:SetScript("OnClick", function() R:ClearFinished() end)
     clear:SetScript("OnEnter", function(btn)

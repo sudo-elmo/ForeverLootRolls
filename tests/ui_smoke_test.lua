@@ -33,6 +33,7 @@ local function MakeFrame(kind, name)
     function f:IsShown() return self._shown end
     function f:SetShown(v) if v then self:Show() else self:Hide() end end
     function f:IsMouseOver() return false end
+    function f:SetupMenu(fn) self._menu = fn end
     function f:SetFrameStrata(v) self._strata = v end
     function f:SetFrameLevel(v) self._level = v end
     function f:SetAlpha(v) self._alpha = v end
@@ -351,13 +352,19 @@ hist.rows[1]._scripts.OnClick(hist.rows[1])
 eq(hist.data[1].collapsed, true, "group folds in on click")
 hist.rows[1]._scripts.OnClick(hist.rows[1])
 hist.view._scripts.OnMouseWheel(hist.view, -1)
-hist.qualityButton._scripts.OnClick(hist.qualityButton, "LeftButton")
-eq(ns.db.historyMinQuality, 2, "quality filter: from uncommon")
-hist.qualityButton._scripts.OnClick(hist.qualityButton, "LeftButton")
-eq(ns.db.historyMinQuality, 3, "quality filter: from rare")
-hist.qualityButton._scripts.OnClick(hist.qualityButton, "RightButton")
-hist.qualityButton._scripts.OnClick(hist.qualityButton, "RightButton")
-eq(ns.db.historyMinQuality, 0, "quality filter: back to all")
+eq(hist.qualityDropdown ~= nil, true, "quality filter is a dropdown")
+local radios = {}
+local root = { CreateRadio = function(_, label, isSelected, setSelected, data)
+    radios[#radios + 1] = { label = label, isSelected = isSelected, setSelected = setSelected, data = data }
+end }
+hist.qualityDropdown._menu(hist.qualityDropdown, root)
+eq(#radios, 4, "four quality choices")
+eq(radios[1].isSelected(), true, "all qualities selected at first")
+radios[3].setSelected()
+eq(ns.db.historyMinQuality, 3, "dropdown: from rare")
+eq(radios[3].isSelected(), true, "dropdown shows the choice")
+radios[1].setSelected()
+eq(ns.db.historyMinQuality, 0, "dropdown: back to all")
 hist.clearButton._scripts.OnClick(hist.clearButton)
 eq(#ForeverLootRollsCharDB.archive, 0, "delete history (after confirming)")
 eq(hist.empty and hist.data and #hist.data, 0, "history window empty")

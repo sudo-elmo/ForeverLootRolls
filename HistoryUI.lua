@@ -269,28 +269,46 @@ function H:Create()
         H.offset = 0
         H:Refresh()
     end)
-    -- quality filter: all / from uncommon / from rare / from epic
-    local quality = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    quality:SetSize(130, 20)
-    quality:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
-    quality:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    quality:SetScript("OnClick", function(_, mouse)
-        local idx = 1
-        for i, q in ipairs(H.QUALITY_STEPS) do if q == H:MinQuality() then idx = i end end
-        idx = idx + (mouse == "RightButton" and -1 or 1)
-        if idx > #H.QUALITY_STEPS then idx = 1 elseif idx < 1 then idx = #H.QUALITY_STEPS end
-        if ns.db then ns.db.historyMinQuality = H.QUALITY_STEPS[idx] end
+    -- quality filter: all / from uncommon / from rare / from epic.
+    -- Blizzard's dropdown where the client has it, else a button that cycles.
+    local function SetMinQuality(q)
+        if ns.db then ns.db.historyMinQuality = q end
         H.offset = 0
         H:Refresh()
-    end)
-    quality:SetScript("OnEnter", function(btn)
-        GameTooltip:SetOwner(btn, "ANCHOR_TOP")
-        GameTooltip:SetText(L.qualityFilter)
-        GameTooltip:AddLine(L.qualityFilterTip, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    quality:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    self.qualityButton = quality
+    end
+    local ok, dropdown = pcall(CreateFrame, "DropdownButton", nil, f, "WowStyle1DropdownTemplate")
+    if ok and dropdown and dropdown.SetupMenu then
+        dropdown:SetWidth(150)
+        dropdown:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+        dropdown:SetupMenu(function(_, root)
+            for _, q in ipairs(H.QUALITY_STEPS) do
+                root:CreateRadio(H.QualityLabel(q),
+                    function() return H:MinQuality() == q end,
+                    function() SetMinQuality(q) end, q)
+            end
+        end)
+        self.qualityDropdown = dropdown
+    else
+        local quality = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+        quality:SetSize(130, 20)
+        quality:SetPoint("RIGHT", f, "TOPRIGHT", -PAD - 2, -36)
+        quality:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        quality:SetScript("OnClick", function(_, mouse)
+            local idx = 1
+            for i, q in ipairs(H.QUALITY_STEPS) do if q == H:MinQuality() then idx = i end end
+            idx = idx + (mouse == "RightButton" and -1 or 1)
+            if idx > #H.QUALITY_STEPS then idx = 1 elseif idx < 1 then idx = #H.QUALITY_STEPS end
+            SetMinQuality(H.QUALITY_STEPS[idx])
+        end)
+        quality:SetScript("OnEnter", function(btn)
+            GameTooltip:SetOwner(btn, "ANCHOR_TOP")
+            GameTooltip:SetText(L.qualityFilter)
+            GameTooltip:AddLine(L.qualityFilterTip, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        quality:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        self.qualityButton = quality
+    end
 
     self.count = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     self.count:SetPoint("BOTTOMRIGHT", -PAD - 2, 20)
@@ -400,7 +418,12 @@ function H:MinQuality()
     return tonumber(ns.db and ns.db.historyMinQuality) or 0
 end
 
-local function QualityName(q)
+function H.QualityLabel(q)
+    if not q or q <= 0 then return L.allQualities end
+    return L.fromQuality:format(H.QualityName(q))
+end
+
+function H.QualityName(q)
     local name = _G["ITEM_QUALITY" .. q .. "_DESC"] or tostring(q)
     local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
     if c then
@@ -413,7 +436,11 @@ function H:Refresh()
     if not (self.frame and self.frame:IsShown()) then return end
     self:ApplyOpacity()
     local minQ = self:MinQuality()
-    self.qualityButton:SetText(minQ > 0 and L.fromQuality:format(QualityName(minQ)) or L.allQualities)
+    if self.qualityDropdown then
+        if self.qualityDropdown.GenerateMenu then self.qualityDropdown:GenerateMenu() end
+    elseif self.qualityButton then
+        self.qualityButton:SetText(H.QualityLabel(minQ))
+    end
     self.data = A:Rows(self.onlyMine, minQ)
     local items = 0
     for _, r in ipairs(self.data) do

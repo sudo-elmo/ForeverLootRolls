@@ -123,18 +123,12 @@ end
 --   { kind = "item", entry }
 -- A group is one visit: one dungeon run where the run is known, else the same
 -- place with the same group and without a long pause in between.
+-- Folding: only the newest visit is open unless the player opened or folded a
+-- group by hand (self.collapsed[id] = true / false).
 function A:Rows(onlyMine, minQuality)
-    local rows, group = {}, nil
+    local groups, group = {}, nil
     local list = self.list or {}
     local prevTs
-    local function Close()
-        if group and group.count == 0 then
-            -- nothing left after filtering: drop the empty header
-            for i = #rows, 1, -1 do
-                if rows[i] == group then table.remove(rows, i) break end
-            end
-        end
-    end
     for i = #list, 1, -1 do
         local e = list[i]
         local zone = e.zone or "?"
@@ -152,10 +146,10 @@ function A:Rows(onlyMine, minQuality)
                 or (group.players and HasOthers(e.players) and not A.SameGroup(group.players, e.players))
         end
         if newRun then
-            Close()
             group = { kind = "group", zone = zone, zoneType = e.zoneType, run = e.run,
-                from = ts, to = ts, count = 0 }
-            rows[#rows + 1] = group
+                from = ts, to = ts, count = 0, entries = {} }
+            group.id = zone .. "@" .. tostring(ts)
+            groups[#groups + 1] = group
         end
         if not group.players and HasOthers(e.players) then group.players = e.players end
         group.from = ts
@@ -164,22 +158,28 @@ function A:Rows(onlyMine, minQuality)
         local qualityOk = not minQuality or minQuality <= 0 or (q and q >= minQuality)
         if (not onlyMine or A.IsMine(e)) and qualityOk then
             group.count = group.count + 1
-            group.id = zone .. "@" .. tostring(group.to)
-            if not self.collapsed[group.id] then
-                rows[#rows + 1] = { kind = "item", entry = e, expanded = self.expanded[e] and true or false }
-                if self.expanded[e] then
-                    for i, p in ipairs(A.SortedPlayers(e)) do
-                        rows[#rows + 1] = { kind = "player", entry = e, player = p, index = i }
+            group.entries[#group.entries + 1] = e
+        end
+    end
+
+    local rows = {}
+    self.openId = nil
+    for _, g in ipairs(groups) do
+        if g.count > 0 then   -- nothing left after filtering: no empty header
+            self.openId = self.openId or g.id
+            g.collapsed = self:IsCollapsed(g.id)
+            rows[#rows + 1] = g
+            if not g.collapsed then
+                for _, e in ipairs(g.entries) do
+                    rows[#rows + 1] = { kind = "item", entry = e, expanded = self.expanded[e] and true or false }
+                    if self.expanded[e] then
+                        for i, p in ipairs(A.SortedPlayers(e)) do
+                            rows[#rows + 1] = { kind = "player", entry = e, player = p, index = i }
+                        end
                     end
                 end
             end
-        end
-    end
-    Close()
-    for _, r in ipairs(rows) do
-        if r.kind == "group" then
-            r.id = r.zone .. "@" .. tostring(r.to)
-            r.collapsed = self.collapsed[r.id] and true or false
+            g.entries = nil
         end
     end
     return rows
@@ -207,6 +207,28 @@ function A:ToggleEntry(e)
     self.expanded[e] = not self.expanded[e] or nil
 end
 
+-- Folded in? A choice by hand wins, else only the newest visit is open.
+function A:IsCollapsed(groupId)
+    local v = self.collapsed[groupId]
+    if v ~= nil then return v end
+    return groupId ~= self.openId
+end
+
 function A:Toggle(groupId)
-    self.collapsed[groupId] = not self.collapsed[groupId] or nil
+    self.collapsed[groupId] = not self:IsCollapsed(groupId)
+end
+
+-- Folds in (true) or opens (false) every group of the given rows.
+function A:SetAllCollapsed(rows, collapsed)
+    for _, r in ipairs(rows or {}) do
+        if r.kind == "group" then self.collapsed[r.id] = collapsed and true or false end
+    end
+end
+
+-- Is any group of the given rows open?
+function A.AnyOpen(rows)
+    for _, r in ipairs(rows or {}) do
+        if r.kind == "group" and not r.collapsed then return true end
+    end
+    return false
 end

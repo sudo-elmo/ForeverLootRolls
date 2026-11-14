@@ -47,8 +47,14 @@ eq(saved[1].zone, "Die Todesminen", "zone stored"); eq(saved[1].zoneType, "party
 R:ClearFinished()
 eq(#saved, 4, "clearing the window keeps the history")
 
--- newest first, one group per visit
+-- by default only the newest visit is open
 local rows = A:Rows(false)
+eq(rows[1].collapsed, false, "newest visit open"); eq(rows[3].collapsed, true, "older visit folded")
+eq(rows[4].kind, "group", "folded visit hides its items")
+
+-- newest first, one group per visit (all opened)
+A:SetAllCollapsed(rows, false)
+rows = A:Rows(false)
 eq(rows[1].kind, "group", "starts with a group"); eq(rows[1].zone, "Die Todesminen", "newest visit first")
 eq(rows[2].entry.link:match("%[(.-)%]"), "Helm", "newest item first")
 eq(rows[3].zone, "Westfall", "zone change starts a new group")
@@ -116,6 +122,14 @@ A:Toggle(rows[3].id)
 local folded = A:Rows(false)
 eq(folded[3].collapsed, true, "group folded"); eq(folded[4].kind, "group", "its items are hidden")
 A:Toggle(rows[3].id)
+
+-- collapse all / expand all
+A:SetAllCollapsed(A:Rows(false), true)
+rows = A:Rows(false)
+eq(A.AnyOpen(rows), false, "all folded"); eq(rows[2].kind, "group", "no items shown")
+A:SetAllCollapsed(rows, false)
+rows = A:Rows(false)
+eq(rows[1].collapsed == false and rows[2].kind == "item", true, "all open again")
 
 -- clicking an item shows every player's roll below it
 rows = A:Rows(false)

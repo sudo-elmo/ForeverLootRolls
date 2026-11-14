@@ -435,6 +435,18 @@ function H:Create()
     end)
     self.clearButton = clear
 
+    -- fold all groups in / open them all again
+    local fold = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    fold:SetSize(120, 22)
+    fold:SetPoint("LEFT", clear, "RIGHT", 4, 0)
+    if self.footer then fold:SetFrameLevel(clear:GetFrameLevel()) end
+    fold:SetScript("OnClick", function()
+        A:SetAllCollapsed(H.data, A.AnyOpen(H.data))
+        H.offset = 0
+        H:Refresh()
+    end)
+    self.foldButton = fold
+
     if UISpecialFrames then tinsert(UISpecialFrames, f:GetName()) end
     self.offset = 0
     return f
@@ -562,6 +574,8 @@ function H:Refresh()
         if r.kind == "group" then items = items + r.count end
     end
     self.count:SetText(L.historyCount:format(items))
+    self.foldButton:SetText(A.AnyOpen(self.data) and L.collapseAll or L.expandAll)
+    self.foldButton:SetShown(items > 0)
     self:Draw()
 end
 

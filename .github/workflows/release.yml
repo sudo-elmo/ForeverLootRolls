@@ -1,7 +1,8 @@
----
 name: Release
 
-# Runs when a version tag like v1.0.0 is pushed.
+# Runs when a version tag like v1.0.0 is pushed: builds the addon zip and
+# attaches it to a GitHub release. GitHub only - no CurseForge, Wago or
+# WoWInterface upload (no API keys are passed to the packager).
 on:
   push:
     tags:
@@ -17,19 +18,16 @@ jobs:
     permissions:
       contents: write
     env:
-      CF_API_KEY: ${{ secrets.CF_API_KEY }}
       GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      # Builds the zip, uploads it to CurseForge (needs X-Curse-Project-ID in the .toc
-      # and the CF_API_KEY secret) and creates a GitHub release.
       - uses: BigWigsMods/packager@v2
 
-      # The packager posts the whole CHANGELOG.md; the GitHub release only gets this version's section.
-      - name: Trim GitHub release notes
+      # The packager posts the whole CHANGELOG.md; the release only gets this version's section.
+      - name: Trim release notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

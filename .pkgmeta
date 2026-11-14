@@ -1,4 +1,3 @@
----
 package-as: ForeverLootRolls
 
 manual-changelog:
@@ -11,3 +10,4 @@ ignore:
   - .pkgmeta
   - tests
   - dist
+  - "*.png"
